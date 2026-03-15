@@ -1,0 +1,56 @@
+from pydantic import BaseModel
+from typing import Optional, List
+
+
+class ScenarioItem(BaseModel):
+    description: str
+    probability: float
+
+
+class Scenarios(BaseModel):
+    base: ScenarioItem
+    bull: ScenarioItem
+    bear: ScenarioItem
+
+
+class TimelineItem(BaseModel):
+    period: str
+    outlook: str
+
+
+class ConfidenceBand(BaseModel):
+    score: float
+    band: List[float]
+    color: str
+
+
+class PredictionReport(BaseModel):
+    headline: str
+    verdict: str
+    confidence: ConfidenceBand
+    scenarios: Scenarios
+    keyDrivers: List[str]
+    riskFactors: List[str]
+    timelineOutlook: List[TimelineItem]
+    agentConsensus: float
+    dominantNarratives: List[str]
+
+
+class PredictRequest(BaseModel):
+    query: str
+    domain: Optional[str] = "general"
+    time_horizon: Optional[str] = "6 months"
+    agent_count: Optional[int] = 8
+    rounds: Optional[int] = 5
+    collect_evidence: Optional[bool] = True
+
+
+class PredictionRecord(BaseModel):
+    id: str
+    query: str
+    domain: Optional[str]
+    time_horizon: Optional[str]
+    status: str
+    confidence: Optional[float]
+    result: Optional[PredictionReport]
+    created_at: str
