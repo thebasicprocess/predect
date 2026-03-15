@@ -18,10 +18,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="PREDECT API", version="1.0.0", lifespan=lifespan)
 
+_raw_origins = os.getenv("CORS_ORIGINS", "")
+_allowed_origins: list[str] = [o.strip() for o in _raw_origins.split(",") if o.strip()] or ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_allowed_origins,
+    allow_credentials=_allowed_origins != ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

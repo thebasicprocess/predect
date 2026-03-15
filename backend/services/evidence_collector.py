@@ -1,15 +1,43 @@
 import asyncio
 import hashlib
+import ipaddress
 import xml.etree.ElementTree as ET
 from typing import List
+from urllib.parse import quote, urlparse
 import httpx
 from bs4 import BeautifulSoup
 from backend.models.evidence import EvidenceItem
 from backend.services.llm_router import llm_call_json
 
 
+_BLOCKED_HOSTS = {"localhost", "0.0.0.0", "::1"}
+_BLOCKED_PREFIXES = ("169.254.", "100.64.")  # link-local, CGN
+
+
+def _is_safe_url(url: str) -> bool:
+    """Block SSRF targets: private IPs, loopback, link-local."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        host = parsed.hostname or ""
+        if host in _BLOCKED_HOSTS:
+            return False
+        if any(host.startswith(p) for p in _BLOCKED_PREFIXES):
+            return False
+        try:
+            addr = ipaddress.ip_address(host)
+            if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+                return False
+        except ValueError:
+            pass  # hostname, not an IP — allow
+        return True
+    except Exception:
+        return False
+
+
 async def collect_arxiv(query: str, max_results: int = 5) -> List[EvidenceItem]:
-    url = f"https://export.arxiv.org/api/query?search_query=all:{query}&max_results={max_results}&sortBy=relevance"
+    url = f"https://export.arxiv.org/api/query?search_query=all:{quote(query)}&max_results={max_results}&sortBy=relevance"
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(url)
@@ -43,7 +71,7 @@ async def collect_hn(query: str, max_results: int = 5) -> List[EvidenceItem]:
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             search_resp = await client.get(
-                f"https://hn.algolia.com/api/v1/search?query={query}&hitsPerPage={max_results}&tags=story"
+                f"https://hn.algolia.com/api/v1/search?query={quote(query)}&hitsPerPage={max_results}&tags=story"
             )
         data = search_resp.json()
         items = []
@@ -70,7 +98,7 @@ async def collect_reddit(query: str, max_results: int = 5) -> List[EvidenceItem]
         headers = {"User-Agent": "PREDECT/1.0"}
         async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
             resp = await client.get(
-                f"https://www.reddit.com/search.json?q={query}&limit={max_results}&sort=relevance"
+                f"https://www.reddit.com/search.json?q={quote(query)}&limit={max_results}&sort=relevance"
             )
         data = resp.json()
         items = []
@@ -94,6 +122,8 @@ async def collect_reddit(query: str, max_results: int = 5) -> List[EvidenceItem]
 
 
 async def scrape_url(url: str) -> str:
+    if not _is_safe_url(url):
+        return ""
     try:
         headers = {"User-Agent": "Mozilla/5.0 PREDECT/1.0"}
         async with httpx.AsyncClient(timeout=15.0, headers=headers, follow_redirects=True) as client:

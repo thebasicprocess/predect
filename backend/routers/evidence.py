@@ -1,9 +1,14 @@
 import json
 import uuid
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, HttpUrl
 from backend.models.evidence import CollectRequest
-from backend.services.evidence_collector import collect_evidence, scrape_url
+from backend.services.evidence_collector import collect_evidence, scrape_url, _is_safe_url
 from backend.db.database import get_connection
+
+
+class FetchUrlRequest(BaseModel):
+    url: HttpUrl
 
 router = APIRouter()
 
@@ -23,8 +28,10 @@ async def collect(request: CollectRequest):
 
 
 @router.post("/fetch-url")
-async def fetch_url(body: dict):
-    url = body.get("url", "")
+async def fetch_url(body: FetchUrlRequest):
+    url = str(body.url)
+    if not _is_safe_url(url):
+        raise HTTPException(status_code=400, detail="URL not allowed")
     text = await scrape_url(url)
     return {"url": url, "text": text, "length": len(text)}
 
