@@ -113,7 +113,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <section className="hero-bg relative overflow-hidden px-6 pt-20 pb-32">
+      <section className="hero-bg relative overflow-hidden px-4 sm:px-6 pt-16 sm:pt-20 pb-24 sm:pb-32">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -127,7 +127,7 @@ export default function Home() {
           </motion.div>
 
           <motion.h1
-            className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
@@ -152,7 +152,7 @@ export default function Home() {
           </motion.p>
 
           <motion.div
-            className="flex items-center justify-center gap-4"
+            className="flex flex-wrap items-center justify-center gap-3 sm:gap-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
@@ -173,7 +173,7 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="px-6 py-20 max-w-6xl mx-auto">
+      <section className="px-4 sm:px-6 py-16 sm:py-20 max-w-6xl mx-auto">
         <motion.div
           className="text-center mb-12"
           initial={{ opacity: 0, y: 20 }}
@@ -213,7 +213,7 @@ export default function Home() {
       </section>
 
       {/* How it works steps */}
-      <section className="px-6 py-20 border-y border-border bg-white/1">
+      <section className="px-4 sm:px-6 py-16 sm:py-20 border-y border-border bg-white/1">
         <div className="max-w-4xl mx-auto">
           <motion.h2
             className="text-3xl font-bold text-center mb-12"
@@ -245,7 +245,7 @@ export default function Home() {
       </section>
 
       {/* Example predictions */}
-      <section className="px-6 py-20 max-w-4xl mx-auto">
+      <section className="px-4 sm:px-6 py-16 sm:py-20 max-w-4xl mx-auto">
         <motion.h2
           className="text-3xl font-bold text-center mb-12"
           initial={{ opacity: 0 }}
@@ -263,10 +263,10 @@ export default function Home() {
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
             >
-              <Card className="flex items-center justify-between hover:border-border-strong transition-colors">
-                <div className="flex items-center gap-3">
-                  <Badge variant="muted">{ex.domain}</Badge>
-                  <span className="text-sm">{ex.query}</span>
+              <Card className="flex items-center justify-between gap-3 hover:border-border-strong transition-colors">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <Badge variant="muted" className="flex-shrink-0">{ex.domain}</Badge>
+                  <span className="text-sm truncate">{ex.query}</span>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <div
@@ -296,7 +296,7 @@ export default function Home() {
       </section>
 
       {/* Model orchestration */}
-      <section className="px-6 py-20 border-t border-border bg-white/1">
+      <section className="px-4 sm:px-6 py-16 sm:py-20 border-t border-border bg-white/1">
         <div className="max-w-3xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0 }}
@@ -310,7 +310,7 @@ export default function Home() {
               Each task is routed to the optimal GLM model — fast models for
               high-volume simulation, premium models for synthesis.
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {models.map((m) => (
                 <div key={m.model} className="glass rounded-xl p-4 text-left">
                   <div
@@ -329,7 +329,7 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section className="px-6 py-24 text-center">
+      <section className="px-4 sm:px-6 py-20 sm:py-24 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

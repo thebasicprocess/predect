@@ -41,9 +41,9 @@ export default function GraphPage() {
   });
 
   return (
-    <div className="h-[calc(100vh-56px)] flex overflow-hidden">
+    <div className="flex flex-col md:flex-row md:h-[calc(100vh-56px)] md:overflow-hidden">
       {/* Graph canvas */}
-      <div className="flex-1 relative bg-[#0a0a0f]">
+      <div className="relative bg-[#0a0a0f] h-[50vh] md:h-auto md:flex-1">
         <GraphCanvas
           nodes={nodes}
           edges={edges}
@@ -64,7 +64,7 @@ export default function GraphPage() {
       <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="w-[320px] flex-shrink-0 border-l border-border overflow-y-auto p-4 space-y-4"
+        className="w-full md:w-[320px] md:flex-shrink-0 border-t md:border-t-0 md:border-l border-border overflow-y-auto p-4 space-y-4"
       >
         {/* Legend */}
         <Card>

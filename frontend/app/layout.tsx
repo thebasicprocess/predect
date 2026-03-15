@@ -18,7 +18,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-[#0a0a0f] text-[#F8F8FC] antialiased">
         <QueryProvider>
           <Navigation />
-          <main className="pt-14">{children}</main>
+          <main className="pt-14 pb-16 sm:pb-0">{children}</main>
         </QueryProvider>
       </body>
     </html>

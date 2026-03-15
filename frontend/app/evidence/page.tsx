@@ -53,7 +53,7 @@ export default function EvidencePage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
@@ -69,7 +69,7 @@ export default function EvidencePage() {
 
         {/* Search */}
         <Card className="mb-6">
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -123,8 +123,8 @@ export default function EvidencePage() {
                   transition={{ delay: i * 0.04 }}
                 >
                   <Card className="hover:border-border-strong transition-colors">
-                    <div className="flex items-start justify-between gap-4 mb-2">
-                      <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
                         <Badge
                           style={{
                             background: `${sourceColors[item.source] || "#635BFF"}20`,
