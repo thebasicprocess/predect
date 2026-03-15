@@ -1,0 +1,12 @@
+node_modules/
+.next/
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+**/*.pyc
+backend/predect.db
+.env
+*.log
+.DS_Store
+dist/
+.vercel/
