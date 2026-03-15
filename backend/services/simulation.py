@@ -1,0 +1,133 @@
+import asyncio
+import random
+from typing import List, Callable, Awaitable
+from backend.models.simulation import AgentPersona, RoundEvent
+from backend.models.evidence import EvidenceItem
+from backend.services.llm_router import llm_call_json
+
+
+async def generate_personas(
+    topic: str,
+    evidence_items: List[EvidenceItem],
+    count: int = 8,
+) -> List[AgentPersona]:
+    entities = []
+    for item in evidence_items[:10]:
+        entities.extend(item.entities[:3])
+    entity_str = ", ".join(set(entities[:20])) if entities else "various stakeholders"
+
+    result = await llm_call_json(
+        "persona_generation",
+        system_prompt="You are a simulation designer creating diverse agent personas for a prediction simulation.",
+        user_prompt=f"""Topic: {topic}
+Key entities from evidence: {entity_str}
+
+Generate {count} diverse agent personas. Each should represent a different perspective, background, or stakeholder type related to the topic.
+
+Return JSON: {{"agents": [{{"id": "agent_1", "name": "string", "role": "string", "beliefs": ["belief1", "belief2", "belief3"], "behavioral_bias": "string"}}]}}
+
+Make agents diverse: experts, skeptics, optimists, domain insiders, public voices, international perspectives."""
+    )
+
+    agents = []
+    for i, a in enumerate(result.get("agents", [])[:count]):
+        agents.append(AgentPersona(
+            id=a.get("id", f"agent_{i}"),
+            name=a.get("name", f"Agent {i}"),
+            role=a.get("role", "Analyst"),
+            beliefs=a.get("beliefs", []),
+            behavioral_bias=a.get("behavioral_bias", "neutral"),
+        ))
+    return agents
+
+
+async def run_simulation_round(
+    round_num: int,
+    agents: List[AgentPersona],
+    topic: str,
+    on_event: Callable[[dict], Awaitable[None]] = None,
+) -> tuple:
+    shuffled = agents[:]
+    random.shuffle(shuffled)
+    pairs = [(shuffled[i], shuffled[i+1]) for i in range(0, len(shuffled)-1, 2)]
+
+    events = []
+    updated_agents = {a.id: a for a in agents}
+
+    for agent1, agent2 in pairs:
+        result = await llm_call_json(
+            "simulation_round",
+            system_prompt="You are simulating a conversation between two agents analyzing a prediction topic.",
+            user_prompt=f"""Round {round_num}. Topic: {topic}
+
+Agent 1: {agent1.name} ({agent1.role})
+Beliefs: {'; '.join(agent1.beliefs[:3])}
+Bias: {agent1.behavioral_bias}
+
+Agent 2: {agent2.name} ({agent2.role})
+Beliefs: {'; '.join(agent2.beliefs[:3])}
+Bias: {agent2.behavioral_bias}
+
+Generate their interaction and belief updates.
+
+Return JSON: {{
+  "interaction_summary": "2-3 sentence summary",
+  "emergent_claims": ["claim1", "claim2"],
+  "agent1_belief_update": "new belief to add",
+  "agent2_belief_update": "new belief to add"
+}}"""
+        )
+
+        event = RoundEvent(
+            round=round_num,
+            agent1_id=agent1.id,
+            agent2_id=agent2.id,
+            agent1_name=agent1.name,
+            agent2_name=agent2.name,
+            interaction_summary=result.get("interaction_summary", ""),
+            emergent_claims=result.get("emergent_claims", []),
+        )
+        events.append(event)
+
+        if result.get("agent1_belief_update"):
+            updated_agents[agent1.id].beliefs.append(result["agent1_belief_update"])
+            updated_agents[agent1.id].memory.append(f"R{round_num}: {result['agent1_belief_update']}")
+        if result.get("agent2_belief_update"):
+            updated_agents[agent2.id].beliefs.append(result["agent2_belief_update"])
+            updated_agents[agent2.id].memory.append(f"R{round_num}: {result['agent2_belief_update']}")
+
+        if on_event:
+            await on_event({
+                "phase": "simulation",
+                "step": round_num,
+                "message": f"Round {round_num}: {agent1.name} x {agent2.name}",
+                "data": event.model_dump(),
+            })
+
+    return events, list(updated_agents.values())
+
+
+async def run_full_simulation(
+    topic: str,
+    evidence_items: List[EvidenceItem],
+    agent_count: int = 8,
+    rounds: int = 5,
+    on_event: Callable[[dict], Awaitable[None]] = None,
+) -> tuple:
+    agents = await generate_personas(topic, evidence_items, agent_count)
+
+    if on_event:
+        await on_event({
+            "phase": "agents",
+            "step": 1,
+            "totalSteps": rounds + 2,
+            "message": f"Generated {len(agents)} agent personas",
+            "data": {"agents": [a.model_dump() for a in agents]},
+        })
+
+    all_rounds = []
+    for r in range(1, rounds + 1):
+        round_events, agents = await run_simulation_round(r, agents, topic, on_event)
+        all_rounds.extend(round_events)
+
+    return agents, all_rounds
