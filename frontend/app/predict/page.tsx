@@ -320,7 +320,24 @@ function PredictPageInner() {
           <div className="flex-1 overflow-y-auto p-6">
             {status === "idle" && (
               <div className="h-full flex flex-col">
-                {recentPredictions.length === 0 ? (
+                {query.trim() ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center">
+                    <motion.div
+                      className="w-20 h-20 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-6"
+                      animate={{ boxShadow: ["0 0 0px rgba(99,91,255,0)", "0 0 24px rgba(99,91,255,0.3)", "0 0 0px rgba(99,91,255,0)"] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <BrainCircuit className="w-10 h-10 text-accent" />
+                    </motion.div>
+                    <h2 className="text-2xl font-bold mb-2">Ready to run</h2>
+                    <p className="text-text-secondary text-sm max-w-sm mb-1 line-clamp-2">
+                      &ldquo;{query}&rdquo;
+                    </p>
+                    <p className="text-text-muted text-xs">
+                      Click <span className="text-accent font-medium">Run Prediction</span> or press <span className="font-mono text-accent">⌘↵</span>
+                    </p>
+                  </div>
+                ) : recentPredictions.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center">
                     <div className="w-20 h-20 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-6">
                       <BrainCircuit className="w-10 h-10 text-accent" />
