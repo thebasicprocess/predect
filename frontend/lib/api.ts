@@ -75,6 +75,12 @@ export async function getPredictionHistory() {
   return res.json();
 }
 
+export async function deletePrediction(id: string) {
+  const res = await fetch(`${API_URL}/api/predict/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete prediction");
+  return res.json();
+}
+
 export async function collectEvidence(
   query: string,
   predictionId?: string,

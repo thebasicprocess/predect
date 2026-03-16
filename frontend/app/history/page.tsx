@@ -1,14 +1,14 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useCallback } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getPredictionHistory } from "@/lib/api";
+import { getPredictionHistory, deletePrediction } from "@/lib/api";
 import { getConfidenceColor, formatConfidence } from "@/lib/utils";
-import { History, Clock, BrainCircuit, BarChart2, CheckCircle2, Target } from "lucide-react";
+import { History, Clock, BrainCircuit, BarChart2, CheckCircle2, Target, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 interface HistoryItem {
@@ -458,11 +458,28 @@ function PredictionHeatmap({ predictions }: { predictions: HistoryItem[] }) {
 
 export default function HistoryPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: predictions = [], isLoading } = useQuery<HistoryItem[]>({
     queryKey: ["history"],
     queryFn: getPredictionHistory,
     refetchInterval: 10_000,
   });
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteMutation = useMutation({
+    mutationFn: deletePrediction,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["history"] });
+      setDeletingId(null);
+    },
+    onError: () => setDeletingId(null),
+  });
+
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setDeletingId(id);
+    deleteMutation.mutate(id);
+  };
 
   const grouped = predictions.reduce(
     (acc: Record<string, HistoryItem[]>, p: HistoryItem) => {
@@ -624,13 +641,21 @@ export default function HistoryPage() {
                             </p>
                           </div>
 
-                          {/* Confidence arc */}
+                          {/* Confidence arc + delete */}
                           <div className="flex-shrink-0 flex flex-col items-end gap-2 pt-0.5">
                             {p.confidence != null ? (
                               <ConfidenceArc score={p.confidence} />
                             ) : (
                               <span className="text-xs text-text-muted font-mono w-10 text-center">—</span>
                             )}
+                            <button
+                              onClick={(e) => handleDelete(e, p.id)}
+                              disabled={deletingId === p.id}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-danger/15 hover:text-danger text-text-muted disabled:opacity-30"
+                              title="Delete prediction"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
                       </Card>

@@ -336,3 +336,22 @@ async def get_result_full(prediction_id: str):
         }
     finally:
         conn.close()
+
+
+@router.delete("/{prediction_id}")
+async def delete_prediction(prediction_id: str):
+    """Delete a prediction and all related data."""
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT id FROM predictions WHERE id = ?", (prediction_id,)).fetchone()
+        if not row:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Prediction not found")
+        conn.execute("DELETE FROM simulations WHERE prediction_id = ?", (prediction_id,))
+        conn.execute("DELETE FROM evidence_bundles WHERE prediction_id = ?", (prediction_id,))
+        conn.execute("DELETE FROM prediction_node_map WHERE prediction_id = ?", (prediction_id,))
+        conn.execute("DELETE FROM predictions WHERE id = ?", (prediction_id,))
+        conn.commit()
+        return {"deleted": prediction_id}
+    finally:
+        conn.close()
