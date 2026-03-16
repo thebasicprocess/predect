@@ -42,6 +42,9 @@ function PredictPageInner() {
     addSession,
     restoreSession,
     removeSession,
+    addEventToSession,
+    setResultForSession,
+    setStatusForSession,
   } = usePredictionStore();
 
   const status = usePredictionStore((s) => s.status);
@@ -103,6 +106,8 @@ function PredictPageInner() {
     if (!query.trim()) return;
     reset();
     setStatus("running");
+    // Capture the session ID at submission time so concurrent predictions stay isolated
+    const submittedSessionId = usePredictionStore.getState().activeSessionId;
 
     try {
       const { prediction_id } = await startPrediction({
@@ -118,13 +123,13 @@ function PredictPageInner() {
       const cleanup = streamPrediction(
         prediction_id,
         (event) => {
-          addEvent(event);
+          addEventToSession(submittedSessionId, event);
           if (event.phase === "report" && event.data) {
-            setResult(event.data as Record<string, unknown>);
-            setStatus("complete");
+            setResultForSession(submittedSessionId, event.data as Record<string, unknown>);
+            setStatusForSession(submittedSessionId, "complete");
             cleanup();
           } else if (event.phase === "error") {
-            setStatus("error");
+            setStatusForSession(submittedSessionId, "error");
             cleanup();
           }
         },
@@ -132,10 +137,10 @@ function PredictPageInner() {
           try {
             const result = await getPredictionResult(prediction_id);
             if (result?.result) {
-              setResult(result.result);
-              setStatus("complete");
+              setResultForSession(submittedSessionId, result.result);
+              setStatusForSession(submittedSessionId, "complete");
             } else if (result?.status === "failed") {
-              setStatus("error");
+              setStatusForSession(submittedSessionId, "error");
             }
           } catch {
             // ignore
@@ -156,6 +161,9 @@ function PredictPageInner() {
     setPredictionId,
     setStatus,
     reset,
+    addEventToSession,
+    setResultForSession,
+    setStatusForSession,
   ]);
 
   // Keyboard shortcut: Cmd+Enter or Ctrl+Enter to run

@@ -100,6 +100,10 @@ interface PredictionStoreState {
   setPredictionId: (id: string) => void;
   setStatus: (s: "idle" | "running" | "complete" | "error") => void;
   addEvent: (e: SSEEvent) => void;
+  /** Session-scoped event update — safe for concurrent predictions */
+  addEventToSession: (sessionId: string, e: SSEEvent) => void;
+  setResultForSession: (sessionId: string, r: Record<string, unknown>) => void;
+  setStatusForSession: (sessionId: string, s: "idle" | "running" | "complete" | "error") => void;
   setResult: (r: Record<string, unknown>) => void;
   setQuery: (q: string) => void;
   reset: () => void;
@@ -211,6 +215,43 @@ export const usePredictionStore = create<PredictionStoreState>((set) => ({
           : s
       ),
     })),
+
+  addEventToSession: (sessionId, e) =>
+    set((state) => {
+      const session = state.sessions.find((s) => s.sessionId === sessionId);
+      if (!session) return {};
+      const newProgress = e.step && e.totalSteps ? Math.round((e.step / e.totalSteps) * 100) : session.progress;
+      const newAgents = e.phase === "agents" && e.data?.agents ? (e.data.agents as AgentPersona[]) : session.agents;
+      const newRoundEvents = e.phase === "simulation" && e.data
+        ? [...session.roundEvents, { round: e.data.round as number, agent1_name: e.data.agent1_name as string, agent2_name: e.data.agent2_name as string, interaction_summary: e.data.interaction_summary as string, emergent_claims: (e.data.emergent_claims as string[]) || [], agent1_statement: (e.data.agent1_statement as string) || undefined, agent2_statement: (e.data.agent2_statement as string) || undefined }]
+        : session.roundEvents;
+      const newEvidence = e.phase === "evidence" && e.data?.items ? (e.data.items as EvidenceItem[]) : session.evidence;
+      const newEvents = [...session.events, e];
+      const updatedSession = { ...session, events: newEvents, progress: newProgress, currentPhase: e.phase, agents: newAgents, roundEvents: newRoundEvents, evidence: newEvidence };
+      const isActive = sessionId === state.activeSessionId;
+      return {
+        ...(isActive ? { events: newEvents, progress: newProgress, currentPhase: e.phase, agents: newAgents, roundEvents: newRoundEvents, evidence: newEvidence } : {}),
+        sessions: state.sessions.map((s) => s.sessionId === sessionId ? updatedSession : s),
+      };
+    }),
+
+  setResultForSession: (sessionId, result) =>
+    set((state) => {
+      const isActive = sessionId === state.activeSessionId;
+      return {
+        ...(isActive ? { result, status: "complete" as const } : {}),
+        sessions: state.sessions.map((s) => s.sessionId === sessionId ? { ...s, result, status: "complete" as const } : s),
+      };
+    }),
+
+  setStatusForSession: (sessionId, status) =>
+    set((state) => {
+      const isActive = sessionId === state.activeSessionId;
+      return {
+        ...(isActive ? { status } : {}),
+        sessions: state.sessions.map((s) => s.sessionId === sessionId ? { ...s, status } : s),
+      };
+    }),
 
   setQuery: (query) =>
     set((state) => ({
