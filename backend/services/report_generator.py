@@ -94,41 +94,59 @@ async def generate_report(
     # First call: main report (no predictedEvents — kept separate to avoid LLM ignoring it)
     if on_event:
         await on_event({"phase": "analysis", "step": 5, "totalSteps": 6, "message": "Synthesizing prediction report...", "model": "glm-4.7", "task": "prediction_synthesis", "tokens": 0})
+    # Compute an evidence quality signal to help calibrate confidence
+    avg_cred = round(
+        sum(e.credibility_score or 0.5 for e in evidence_items[:20]) / max(len(evidence_items[:20]), 1),
+        2,
+    ) if evidence_items else 0.5
+    evidence_quality = "high" if avg_cred >= 0.75 else "medium" if avg_cred >= 0.55 else "low"
+
     result, tokens1 = await llm_call_json_with_usage(
         "prediction_synthesis",
         system_prompt="""You are a world-class analyst synthesizing evidence and simulation data into a structured prediction report.
-Be specific, data-driven, and calibrated. Output valid JSON only.""",
+Be specific, data-driven, and calibrated. Confidence scoring guide:
+- 0.75–0.95: Strong consensus across agents, high-quality evidence, clear directional signals
+- 0.50–0.74: Moderate evidence, some disagreement, uncertain timing but probable direction
+- 0.30–0.49: Conflicting evidence, significant agent disagreement, high uncertainty
+- 0.10–0.29: Very limited evidence, deeply conflicted agents, near-random outcome
+Output valid JSON only.""",
         user_prompt=f"""Query: {query}
 Domain: {domain}
 Time Horizon: {time_horizon}
+Evidence quality: {evidence_quality} (avg credibility: {avg_cred})
+Agent consensus level: {round(agent_consensus * 100)}% (higher = more agreement)
 
 Evidence Summary:
 {evidence_summary}
 
-Simulation Emergent Claims:
+Simulation Emergent Claims (sorted by recurrence — [Nx] means N agents raised it):
 {claims_summary}
 
-Agent Final Beliefs:
+Agent Final Beliefs (evolved through simulation rounds):
 {beliefs_summary}
 
 Generate a comprehensive prediction report as JSON:
 {{
-  "headline": "Bold 1-sentence prediction headline",
-  "verdict": "2-3 sentence verdict with specific details",
-  "confidence_score": 0.0,
-  "confidence_color": "#hex",
+  "headline": "Bold 1-sentence prediction headline with specific outcome",
+  "verdict": "2-3 sentence verdict with specific details, citing key evidence and agent consensus",
+  "confidence_score": <float 0.10-0.95 calibrated to evidence quality and agent consensus>,
   "scenarios": {{
-    "base": {{"description": "Most likely scenario (2-3 sentences)", "probability": 0.5}},
-    "bull": {{"description": "Optimistic scenario (2-3 sentences)", "probability": 0.25}},
-    "bear": {{"description": "Pessimistic scenario (2-3 sentences)", "probability": 0.25}}
+    "base": {{"description": "Most likely scenario (2-3 sentences)", "probability": <float>}},
+    "bull": {{"description": "Optimistic scenario (2-3 sentences)", "probability": <float>}},
+    "bear": {{"description": "Pessimistic scenario (2-3 sentences)", "probability": <float>}}
   }},
-  "keyDrivers": ["driver1", "driver2", "driver3", "driver4"],
-  "riskFactors": ["risk1", "risk2", "risk3"],
+  "keyDrivers": ["specific driver 1", "specific driver 2", "specific driver 3", "specific driver 4"],
+  "riskFactors": ["specific risk 1", "specific risk 2", "specific risk 3"],
   "timelineOutlook": [
     {tl_example}
   ],
   "dominantNarratives": ["narrative1", "narrative2", "narrative3"]
-}}"""
+}}
+
+Rules:
+- scenario probabilities must sum to 1.0
+- confidence_score MUST be a float, not 0.0 (use the calibration guide above)
+- keyDrivers and riskFactors must be specific to the query, not generic"""
     )
 
     # Second call: dedicated predicted events (wrapped in object for reliable json_mode)
