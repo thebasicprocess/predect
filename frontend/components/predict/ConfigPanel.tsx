@@ -4,7 +4,7 @@ import { useSettingsStore } from "@/lib/stores/settingsStore";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { SlidersHorizontal } from "lucide-react";
+import { Lightbulb, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ConfigPanelProps {
@@ -19,6 +19,57 @@ interface ConfigPanelProps {
 }
 
 const MAX_CHARS = 500;
+
+const DOMAIN_EXAMPLES: Record<string, string[]> = {
+  general: [
+    "Will inflation return to 2% target by end of 2025?",
+    "What are the chances of a global recession in 2025?",
+    "How will AI regulation evolve globally in the next year?",
+    "Will remote work remain dominant through 2026?",
+  ],
+  finance: [
+    "Will the Fed cut rates more than 3 times in 2025?",
+    "Can the S&P 500 reach new all-time highs by Q3?",
+    "Will Bitcoin surpass $100k before year-end?",
+    "Is a housing market correction likely in 2025?",
+  ],
+  technology: [
+    "Will GPT-5 or Claude 4 dominate enterprise AI in 2025?",
+    "Can open-source LLMs match frontier model performance?",
+    "Will Nvidia maintain GPU market dominance through 2026?",
+    "How will quantum computing advance in the next 2 years?",
+  ],
+  politics: [
+    "How will US-China trade relations evolve in 2025?",
+    "Will AI regulation pass in the EU before 2026?",
+    "What outcome is likely in the next UK general election?",
+    "Will NATO expand further in Eastern Europe?",
+  ],
+  science: [
+    "Will mRNA vaccines replace traditional flu shots by 2027?",
+    "How close are we to a viable nuclear fusion reactor?",
+    "Will CRISPR gene editing reach mainstream medicine by 2026?",
+    "What breakthroughs in battery technology can we expect?",
+  ],
+  sports: [
+    "Which team will win the next FIFA World Cup?",
+    "Will LeBron James retire before the 2026 season?",
+    "Can Novak Djokovic break more Grand Slam records?",
+    "Will esports viewership surpass traditional sports by 2030?",
+  ],
+  crypto: [
+    "Will Ethereum successfully scale to mainstream adoption?",
+    "Can DeFi recover from regulatory pressure in 2025?",
+    "Will Bitcoin ETF inflows sustain the bull market?",
+    "Which layer-2 protocol will dominate by end of 2025?",
+  ],
+  climate: [
+    "Will global emissions peak before 2030?",
+    "Can renewable energy provide 50% of global power by 2030?",
+    "Will carbon capture technology become cost-effective by 2028?",
+    "How will climate migration reshape geopolitics by 2035?",
+  ],
+};
 
 const domains = [
   "general",
@@ -63,6 +114,7 @@ export function ConfigPanel({
   const { agentCount, rounds, setAgentCount, setRounds } = useSettingsStore();
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Rotate placeholder every 3s when query is empty
   useEffect(() => {
@@ -94,6 +146,11 @@ export function ConfigPanel({
     }
   };
 
+  const handleExampleClick = (example: string) => {
+    setQuery(example);
+    textareaRef.current?.focus();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -121,6 +178,7 @@ export function ConfigPanel({
           )}
         </CardHeader>
         <Textarea
+          ref={textareaRef}
           value={query}
           onChange={handleChange}
           placeholder={placeholderExamples[placeholderIdx]}
@@ -237,6 +295,28 @@ export function ConfigPanel({
           </div>
         </div>
       </Card>
+
+      {!query && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-1.5">
+              <Lightbulb className="w-3.5 h-3.5 text-accent" />
+              <CardTitle>Example Questions</CardTitle>
+            </div>
+          </CardHeader>
+          <div className="space-y-1">
+            {(DOMAIN_EXAMPLES[domain] ?? DOMAIN_EXAMPLES.general).map((example) => (
+              <button
+                key={example}
+                onClick={() => handleExampleClick(example)}
+                className="w-full text-left text-[10px] px-2.5 py-1.5 rounded-lg bg-white/3 border border-border hover:bg-white/6 hover:border-border-strong transition-colors text-text-muted hover:text-text-secondary leading-snug"
+              >
+                → {example}
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

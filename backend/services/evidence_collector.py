@@ -160,9 +160,10 @@ Evidence items:
 
 Return a JSON object with key "items" containing an array where each element has:
 - index: int (0-based)
-- relevance: float 0-1
-- sentiment: float -1 to 1
-- entities: array of strings (key named entities)
+- relevance: float 0-1 (how directly relevant to the query)
+- credibility: float 0-1 (source quality: academic/official=0.9+, news=0.7-0.85, social=0.4-0.65)
+- sentiment: float -1 to 1 (negative to positive regarding the query topic)
+- entities: array of strings (key named entities: people, orgs, events)
 
 Return only valid JSON."""
         )
@@ -174,6 +175,11 @@ Return only valid JSON."""
         idx = item_data.get("index", -1)
         if 0 <= idx < len(enriched):
             enriched[idx].relevance_score = item_data.get("relevance", enriched[idx].relevance_score)
+            if "credibility" in item_data:
+                # Blend LLM credibility with source-default (60% LLM, 40% source default)
+                llm_cred = float(item_data["credibility"])
+                src_cred = enriched[idx].credibility_score or 0.7
+                enriched[idx].credibility_score = round(llm_cred * 0.6 + src_cred * 0.4, 3)
             enriched[idx].sentiment = item_data.get("sentiment", 0.0)
             enriched[idx].entities = item_data.get("entities", [])
 
