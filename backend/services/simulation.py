@@ -71,13 +71,19 @@ async def _run_pair(
     agent1: AgentPersona,
     agent2: AgentPersona,
     topic: str,
+    prior_claims: list[str] | None = None,
 ) -> tuple:
     """Run a single pair interaction; returns (RoundEvent, result_dict, tokens)."""
+    prior_context = ""
+    if prior_claims and round_num > 1:
+        top_claims = prior_claims[:4]
+        prior_context = f"\nClaims that emerged in prior rounds:\n" + "\n".join(f"- {c}" for c in top_claims) + "\n"
+
     result, tokens = await llm_call_json_with_usage(
         "simulation_round",
         system_prompt="You are simulating a conversation between two agents analyzing a prediction topic.",
         user_prompt=f"""Round {round_num}. Topic: {topic}
-
+{prior_context}
 Agent 1: {agent1.name} ({agent1.role})
 Beliefs: {'; '.join(agent1.beliefs[:3])}
 Bias: {agent1.behavioral_bias}
@@ -86,7 +92,7 @@ Agent 2: {agent2.name} ({agent2.role})
 Beliefs: {'; '.join(agent2.beliefs[:3])}
 Bias: {agent2.behavioral_bias}
 
-Generate their interaction and belief updates. Write the agent statements as direct first-person quotes — natural, specific, and grounded in their beliefs and bias.
+Generate their interaction and belief updates. Write the agent statements as direct first-person quotes — natural, specific, and grounded in their beliefs and bias. If prior claims exist, agents should react to them (agree, challenge, or build on them).
 
 Return JSON: {{
   "interaction_summary": "2-3 sentence summary of the debate",
@@ -116,6 +122,7 @@ async def run_simulation_round(
     agents: List[AgentPersona],
     topic: str,
     on_event: Callable[[dict], Awaitable[None]] = None,
+    prior_claims: list[str] | None = None,
 ) -> tuple:
     shuffled = agents[:]
     random.shuffle(shuffled)
@@ -127,9 +134,9 @@ async def run_simulation_round(
 
     updated_agents = {a.id: a for a in agents}
 
-    # Run all pairs in this round in parallel
+    # Run all pairs in this round in parallel, sharing prior round context
     pair_results = await asyncio.gather(
-        *[_run_pair(round_num, a1, a2, topic) for a1, a2 in pairs],
+        *[_run_pair(round_num, a1, a2, topic, prior_claims) for a1, a2 in pairs],
         return_exceptions=True,
     )
 
@@ -186,8 +193,17 @@ async def run_full_simulation(
         })
 
     all_rounds = []
+    accumulated_claims: list[str] = []
     for r in range(1, rounds + 1):
-        round_events, agents = await run_simulation_round(r, agents, topic, on_event)
+        round_events, agents = await run_simulation_round(
+            r, agents, topic, on_event,
+            prior_claims=accumulated_claims[-8:] if accumulated_claims else None,
+        )
         all_rounds.extend(round_events)
+        # Accumulate unique emergent claims for the next round's context
+        for ev in round_events:
+            for claim in ev.emergent_claims:
+                if claim not in accumulated_claims:
+                    accumulated_claims.append(claim)
 
     return agents, all_rounds

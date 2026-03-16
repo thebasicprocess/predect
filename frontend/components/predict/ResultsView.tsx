@@ -399,6 +399,13 @@ export function ResultsView() {
                   Point estimate: <span className="font-mono" style={{ color: confidenceColor }}>{Math.round(report.confidence.score * 100)}%</span>
                   {" · "}range: <span className="font-mono">{Math.round(report.confidence.band[0] * 100)}%–{Math.round(report.confidence.band[1] * 100)}%</span>
                 </p>
+                <p className="text-[10px] mt-1.5 font-medium" style={{ color: confidenceColor }}>
+                  {report.confidence.score >= 0.7
+                    ? "Strong consensus — evidence and agents strongly agree"
+                    : report.confidence.score >= 0.45
+                    ? "Moderate confidence — some conflicting signals present"
+                    : "Low confidence — high uncertainty, significantly conflicting views"}
+                </p>
               </Card>
             )}
 
