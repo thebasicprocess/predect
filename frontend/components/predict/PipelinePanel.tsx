@@ -1,5 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { usePredictionStore } from "@/lib/stores/predictionStore";
 import { Progress } from "@/components/ui/Progress";
 import { Card } from "@/components/ui/Card";
@@ -15,8 +16,32 @@ const phases = [
   { id: "report", label: "Report Generation" },
 ];
 
+function useElapsedTime(running: boolean) {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (running) {
+      startRef.current = Date.now();
+      setElapsed(0);
+      timerRef.current = setInterval(() => {
+        setElapsed(Math.floor((Date.now() - (startRef.current ?? Date.now())) / 1000));
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [running]);
+
+  return elapsed;
+}
+
 export function PipelinePanel() {
   const { status, events, progress, currentPhase } = usePredictionStore();
+  const elapsed = useElapsedTime(status === "running");
 
   if (status === "idle") return null;
 
@@ -32,7 +57,14 @@ export function PipelinePanel() {
   return (
     <Card className="mb-4">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-semibold">Pipeline Progress</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">Pipeline Progress</span>
+          {status === "running" && elapsed > 0 && (
+            <span className="text-[10px] font-mono text-text-muted tabular-nums">
+              {elapsed}s
+            </span>
+          )}
+        </div>
         <Badge
           variant={
             status === "complete"
