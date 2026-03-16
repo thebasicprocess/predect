@@ -36,7 +36,7 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
         if request.collect_evidence:
             evidence_items = await collect_evidence(
                 request.query,
-                max_items=15,
+                max_items=20,
                 news_api_key=request.news_api_key or None,
                 gnews_api_key=request.gnews_api_key or None,
             )
@@ -81,10 +81,10 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
         # Collect raw entities from evidence
         entity_names = set()
         for item in evidence_items:
-            for entity in item.entities[:3]:
+            for entity in item.entities[:5]:
                 entity_names.add(entity)
 
-        entity_list = list(entity_names)[:25]
+        entity_list = list(entity_names)[:35]
 
         # Use LLM to classify entities into typed nodes with relationships
         graph_result = {"entities": []}

@@ -56,11 +56,12 @@ async def generate_report(
 
     all_beliefs = []
     for a in agents:
-        all_beliefs.extend(a.beliefs[-2:])
+        all_beliefs.extend(a.beliefs[-4:])
 
+    # Use up to 20 evidence items, include credibility and sentiment context
     evidence_summary = "\n".join([
-        f"- [{item.source}] {item.title}: {item.snippet[:200]}"
-        for item in evidence_items[:10]
+        f"- [{item.source}] (rel:{round(item.relevance_score, 2)}, cred:{round(item.credibility_score or 0.5, 2)}) {item.title}: {item.snippet[:250]}"
+        for item in evidence_items[:20]
     ])
 
     claims_summary = "\n".join([f"- {c}" for c in set(all_claims[:20])])
