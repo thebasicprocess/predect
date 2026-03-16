@@ -58,8 +58,13 @@ export function PipelinePanel() {
 
   if (status === "idle") return null;
 
+  // Map internal phase names to the display phase IDs
+  const normalizePhase = (p: string) =>
+    p === "agents_final" ? "simulation" : p;
+
   const phaseOrder = phases.map((p) => p.id);
-  const currentPhaseIdx = phaseOrder.indexOf(currentPhase);
+  const normalizedPhase = normalizePhase(currentPhase);
+  const currentPhaseIdx = phaseOrder.indexOf(normalizedPhase);
   const isPhaseDone = (phaseId: string) => {
     if (status === "complete") return true;
     if (status === "error") return false;
@@ -113,7 +118,7 @@ export function PipelinePanel() {
       <div className="space-y-2">
         {phases.map((phase) => {
           const done = isPhaseDone(phase.id);
-          const active = currentPhase === phase.id && status === "running";
+          const active = normalizedPhase === phase.id && status === "running";
           return (
             <div key={phase.id} className="flex items-center gap-2.5">
               {done ? (
