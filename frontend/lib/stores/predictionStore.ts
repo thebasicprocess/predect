@@ -200,6 +200,10 @@ export const usePredictionStore = create<PredictionStoreState>()(
                   (e.data.agent1_statement as string) || undefined,
                 agent2_statement:
                   (e.data.agent2_statement as string) || undefined,
+                key_disagreement:
+                  (e.data.key_disagreement as string) || undefined,
+                belief_shifts:
+                  (e.data.belief_shifts as Record<string, number>) || undefined,
               },
             ]
           : state.roundEvents;
@@ -250,7 +254,7 @@ export const usePredictionStore = create<PredictionStoreState>()(
       const newProgress = e.step && e.totalSteps ? Math.round((e.step / e.totalSteps) * 100) : session.progress;
       const newAgents = (e.phase === "agents" || e.phase === "agents_final") && e.data?.agents ? (e.data.agents as AgentPersona[]) : session.agents;
       const newRoundEvents = e.phase === "simulation" && e.data
-        ? [...session.roundEvents, { round: e.data.round as number, agent1_name: e.data.agent1_name as string, agent2_name: e.data.agent2_name as string, interaction_summary: e.data.interaction_summary as string, emergent_claims: (e.data.emergent_claims as string[]) || [], agent1_statement: (e.data.agent1_statement as string) || undefined, agent2_statement: (e.data.agent2_statement as string) || undefined }]
+        ? [...session.roundEvents, { round: e.data.round as number, agent1_name: e.data.agent1_name as string, agent2_name: e.data.agent2_name as string, interaction_summary: e.data.interaction_summary as string, emergent_claims: (e.data.emergent_claims as string[]) || [], agent1_statement: (e.data.agent1_statement as string) || undefined, agent2_statement: (e.data.agent2_statement as string) || undefined, key_disagreement: (e.data.key_disagreement as string) || undefined, belief_shifts: (e.data.belief_shifts as Record<string, number>) || undefined }]
         : session.roundEvents;
       const newEvidence = e.phase === "evidence" && e.data?.items ? (e.data.items as EvidenceItem[]) : session.evidence;
       const newEvents = [...session.events, e];
