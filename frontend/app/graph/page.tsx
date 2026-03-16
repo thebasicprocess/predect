@@ -156,7 +156,7 @@ function GraphPageInner() {
     for (const e of edges) {
       m.set(e.relationship, (m.get(e.relationship) ?? 0) + 1);
     }
-    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
   }, [edges]);
 
   // Most central node + most common relationship
@@ -186,7 +186,7 @@ function GraphPageInner() {
     for (const { edge } of allConnectedEdges) {
       m.set(edge.relationship, (m.get(edge.relationship) ?? 0) + 1);
     }
-    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6);
   }, [allConnectedEdges, selected]);
 
   return (

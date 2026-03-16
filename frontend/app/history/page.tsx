@@ -512,7 +512,7 @@ export default function HistoryPage() {
     for (const p of predictions) {
       if (p.domain) counts.set(p.domain, (counts.get(p.domain) ?? 0) + 1);
     }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
   }, [predictions]);
 
   const grouped = filteredPredictions.reduce(
