@@ -24,6 +24,8 @@ import {
   Users,
   Link2,
   FileText,
+  Search,
+  X,
 } from "lucide-react";
 
 interface NarrativeCamp {
@@ -80,6 +82,7 @@ export function ResultsView() {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
   const [evidenceSort, setEvidenceSort] = useState<"relevance" | "credibility" | "date">("relevance");
+  const [evidenceFilter, setEvidenceFilter] = useState("");
 
   // Claim frequency across all rounds (for "recurring" indicators)
   const claimFreqMap = useMemo(() => {
@@ -134,9 +137,17 @@ export function ResultsView() {
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [evidence]);
 
-  // Sorted evidence list
+  // Sorted + filtered evidence list
   const sortedEvidence = useMemo(() => {
-    const copy = [...evidence];
+    const q = evidenceFilter.trim().toLowerCase();
+    let copy = q
+      ? evidence.filter(
+          (e) =>
+            e.title.toLowerCase().includes(q) ||
+            (e.snippet ?? "").toLowerCase().includes(q) ||
+            e.source.toLowerCase().includes(q)
+        )
+      : [...evidence];
     if (evidenceSort === "credibility") {
       copy.sort((a, b) => (b.credibility_score ?? 0) - (a.credibility_score ?? 0));
     } else if (evidenceSort === "date") {
@@ -149,7 +160,7 @@ export function ResultsView() {
       copy.sort((a, b) => b.relevance_score - a.relevance_score);
     }
     return copy;
-  }, [evidence, evidenceSort]);
+  }, [evidence, evidenceSort, evidenceFilter]);
 
   // Unique round count
   const totalRounds = useMemo(() => new Set(roundEvents.map((r) => r.round)).size, [roundEvents]);
@@ -1101,16 +1112,43 @@ export function ResultsView() {
                 </div>
               </CardHeader>
               {evidence.length > 0 && (
-                <div className="flex items-center gap-1 mb-3 p-1 bg-white/4 rounded-lg w-fit">
-                  {(["relevance", "credibility", "date"] as const).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setEvidenceSort(s)}
-                      className={`text-[10px] px-2.5 py-1 rounded-md transition-all capitalize ${evidenceSort === s ? "bg-accent/20 text-accent" : "text-text-muted hover:text-text-secondary"}`}
-                    >
-                      {s}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  {/* Search input */}
+                  <div className="relative flex-1 min-w-[160px]">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted pointer-events-none" />
+                    <input
+                      type="text"
+                      value={evidenceFilter}
+                      onChange={(e) => setEvidenceFilter(e.target.value)}
+                      placeholder="Filter sources..."
+                      className="w-full pl-7 pr-7 py-1 text-[11px] bg-white/4 border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
+                    />
+                    {evidenceFilter && (
+                      <button
+                        onClick={() => setEvidenceFilter("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  {/* Sort buttons */}
+                  <div className="flex items-center gap-1 p-1 bg-white/4 rounded-lg flex-shrink-0">
+                    {(["relevance", "credibility", "date"] as const).map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => setEvidenceSort(s)}
+                        className={`text-[10px] px-2.5 py-1 rounded-md transition-all capitalize ${evidenceSort === s ? "bg-accent/20 text-accent" : "text-text-muted hover:text-text-secondary"}`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  {evidenceFilter && (
+                    <span className="text-[10px] font-mono text-text-muted flex-shrink-0">
+                      {sortedEvidence.length}/{evidence.length}
+                    </span>
+                  )}
                 </div>
               )}
               {evidence.length > 0 ? (
