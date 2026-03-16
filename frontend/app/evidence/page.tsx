@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -13,6 +14,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  ArrowRight,
 } from "lucide-react";
 
 const sourceColors: Record<string, string> = {
@@ -307,6 +309,7 @@ function CredibilityMatrix({ items }: { items: EvidenceItem[] }) {
 type SortKey = "relevance" | "credibility" | "sentiment";
 
 export default function EvidencePage() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<EvidenceItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -435,6 +438,16 @@ export default function EvidencePage() {
                 })}
               </div>
               </div>
+            </div>
+
+            <div className="flex justify-end mb-3">
+              <button
+                onClick={() => router.push(`/predict?query=${encodeURIComponent(query)}`)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/25 text-accent text-xs font-medium hover:bg-accent/20 transition-colors"
+              >
+                <ArrowRight className="w-3.5 h-3.5" />
+                Run Prediction on this query
+              </button>
             </div>
 
             <div className="space-y-3">

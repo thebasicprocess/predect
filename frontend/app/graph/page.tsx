@@ -52,11 +52,11 @@ function GraphPageInner() {
 
   const graphRef = useRef<GraphCanvasHandle>(null);
 
-  const { data: nodes = [] } = useQuery<GraphNode[]>({
+  const { data: nodes = [], isLoading: isLoadingNodes } = useQuery<GraphNode[]>({
     queryKey: ["graph-nodes", predictionId],
     queryFn: () => getGraphNodes(500, predictionId),
   });
-  const { data: edges = [] } = useQuery<GraphEdge[]>({
+  const { data: edges = [], isLoading: isLoadingEdges } = useQuery<GraphEdge[]>({
     queryKey: ["graph-edges", predictionId],
     queryFn: () => getGraphEdges(1000, predictionId),
   });
@@ -242,6 +242,26 @@ function GraphPageInner() {
             <Maximize2 className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Canvas empty state */}
+        {nodes.length === 0 && !isLoadingNodes && !isLoadingEdges && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 pointer-events-none">
+            <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4">
+              <Network className="w-8 h-8 text-accent/60" />
+            </div>
+            <h3 className="text-sm font-semibold text-text-primary mb-1">No knowledge graph yet</h3>
+            <p className="text-xs text-text-muted max-w-[200px] mb-4">
+              Run a prediction to start building the graph — entities and relationships are extracted automatically.
+            </p>
+            <a
+              href="/predict"
+              className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/25 text-accent text-xs font-medium hover:bg-accent/20 transition-colors"
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+              Run your first prediction
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Sidebar */}
