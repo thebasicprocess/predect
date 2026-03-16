@@ -67,6 +67,7 @@ const SOURCE_COLORS: Record<string, string> = {
   google_news: "#10B981",
   wikipedia: "#60A5FA",
   newsapi: "#A78BFA",
+  alpha_vantage: "#22D3EE",
   gnews: "#EC4899",
   web: "#F97316",
 };

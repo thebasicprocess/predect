@@ -340,11 +340,55 @@ async def collect_gnews(query: str, api_key: str, max_results: int = 5) -> List[
         return []
 
 
+async def collect_alpha_vantage(query: str, api_key: str, max_results: int = 5) -> List[EvidenceItem]:
+    """Collect financial news sentiment from Alpha Vantage NEWS_SENTIMENT endpoint."""
+    try:
+        url = (
+            f"https://www.alphavantage.co/query"
+            f"?function=NEWS_SENTIMENT&q={quote(query)}&limit={max_results}&sort=RELEVANCE&apikey={api_key}"
+        )
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            resp = await client.get(url)
+        data = resp.json()
+        items = []
+        for article in data.get("feed", [])[:max_results]:
+            url_str = article.get("url", "")
+            if not url_str:
+                continue
+            title = article.get("title", "")
+            snippet = article.get("summary", title)[:500]
+            sentiment_score = float(article.get("overall_sentiment_score", 0.0))
+            published = article.get("time_published", "")
+            # Convert AV timestamp 20250101T120000 → ISO 8601
+            if published and len(published) >= 15:
+                try:
+                    from datetime import datetime
+                    published = datetime.strptime(published[:15], "%Y%m%dT%H%M%S").isoformat()
+                except Exception:
+                    pass
+            items.append(EvidenceItem(
+                id=hashlib.md5(url_str.encode()).hexdigest(),
+                title=title,
+                url=url_str,
+                source="alpha_vantage",
+                snippet=snippet,
+                credibility_score=0.8,
+                relevance_score=0.8,
+                sentiment=round(sentiment_score, 3),
+                published_at=published or None,
+            ))
+        return items
+    except Exception as e:
+        logger.warning("Alpha Vantage collection failed: %s", e)
+        return []
+
+
 async def collect_evidence(
     query: str,
     max_items: int = 20,
     news_api_key: str | None = None,
     gnews_api_key: str | None = None,
+    alpha_vantage_key: str | None = None,
 ) -> List[EvidenceItem]:
     tasks = [
         collect_arxiv(query, max_results=5),
@@ -357,6 +401,8 @@ async def collect_evidence(
         tasks.append(collect_newsapi(query, news_api_key, max_results=5))
     if gnews_api_key:
         tasks.append(collect_gnews(query, gnews_api_key, max_results=5))
+    if alpha_vantage_key:
+        tasks.append(collect_alpha_vantage(query, alpha_vantage_key, max_results=5))
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
 

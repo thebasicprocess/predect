@@ -42,7 +42,7 @@ function PredictPageInner() {
   const domainParam = searchParams.get("domain");
   const timeHorizonParam = searchParams.get("time_horizon");
 
-  const { agentCount, rounds, newsApiKey, gNewsApiKey, defaultDomain, defaultTimeHorizon } = useSettingsStore();
+  const { agentCount, rounds, newsApiKey, gNewsApiKey, alphaVantageKey, defaultDomain, defaultTimeHorizon } = useSettingsStore();
 
   const [query, setQueryLocal] = useState(queryParam ? decodeURIComponent(queryParam) : "");
   const [domain, setDomain] = useState(domainParam || defaultDomain || "general");
@@ -168,6 +168,7 @@ function PredictPageInner() {
         collect_evidence: true,
         news_api_key: newsApiKey || null,
         gnews_api_key: gNewsApiKey || null,
+        alpha_vantage_key: alphaVantageKey || null,
       });
       setPredictionId(prediction_id);
 

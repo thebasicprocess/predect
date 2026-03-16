@@ -9,6 +9,7 @@ export interface PredictRequest {
   collect_evidence?: boolean;
   news_api_key?: string | null;
   gnews_api_key?: string | null;
+  alpha_vantage_key?: string | null;
 }
 
 export interface SSEEvent {

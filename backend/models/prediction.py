@@ -62,6 +62,7 @@ class PredictRequest(BaseModel):
     collect_evidence: Optional[bool] = True
     news_api_key: Optional[str] = None
     gnews_api_key: Optional[str] = None
+    alpha_vantage_key: Optional[str] = None
 
 
 class PredictionRecord(BaseModel):
