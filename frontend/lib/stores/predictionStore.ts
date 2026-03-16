@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 export interface SSEEvent {
   phase: string;
@@ -141,7 +142,9 @@ interface PredictionStoreState {
 
 const initialSessionId = makeSessionId();
 
-export const usePredictionStore = create<PredictionStoreState>((set) => ({
+export const usePredictionStore = create<PredictionStoreState>()(
+  persist(
+  (set) => ({
   // Active flat state
   ...blankSession(),
 
@@ -469,4 +472,38 @@ export const usePredictionStore = create<PredictionStoreState>((set) => ({
 
       return { sessions: remaining };
     }),
-}));
+  }),
+  {
+    name: "predect-sessions-v1",
+    storage: createJSONStorage(() => {
+      if (typeof window === "undefined") {
+        return { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+      }
+      return localStorage;
+    }),
+    // Only persist completed/error sessions; strip large event arrays
+    partialize: (state) => ({
+      sessions: state.sessions
+        .filter((s) => s.status === "complete" || s.status === "error")
+        .slice(0, MAX_SESSIONS)
+        .map((s) => ({ ...s, events: [] })),
+    }),
+    // On hydration: restore completed sessions as background history,
+    // always start with a fresh blank active session
+    merge: (persistedState: unknown, currentState: PredictionStoreState) => {
+      const persisted = persistedState as { sessions?: PredictionSession[] } | null;
+      const restoredSessions = (persisted?.sessions ?? []).slice(0, MAX_SESSIONS - 1);
+      const newSessionId = makeSessionId();
+      const newSession: PredictionSession = {
+        sessionId: newSessionId,
+        createdAt: Date.now(),
+        ...blankSession(),
+      };
+      return {
+        ...currentState,
+        sessions: [...restoredSessions, newSession],
+        activeSessionId: newSessionId,
+      };
+    },
+  }
+));
