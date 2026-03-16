@@ -629,18 +629,23 @@ export function ResultsView() {
                         {item.snippet && (
                           <p className="text-[10px] text-text-muted leading-relaxed mt-1 line-clamp-2">{item.snippet}</p>
                         )}
-                        <div className="flex items-center gap-3 mt-1.5">
-                          <div className="flex items-center gap-1">
-                            <div className="h-1 w-14 bg-white/8 rounded-full overflow-hidden">
+                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                          <div className="flex items-center gap-1" title="Relevance score">
+                            <div className="h-1 w-12 bg-white/8 rounded-full overflow-hidden">
                               <div
                                 className="h-full rounded-full"
                                 style={{ width: `${Math.round(item.relevance_score * 100)}%`, background: color }}
                               />
                             </div>
                             <span className="text-[10px] font-mono text-text-muted">
-                              {Math.round(item.relevance_score * 100)}%
+                              {Math.round(item.relevance_score * 100)}% rel
                             </span>
                           </div>
+                          {item.credibility_score != null && (
+                            <span className="text-[10px] font-mono text-text-muted" title="Credibility score">
+                              {Math.round(item.credibility_score * 100)}% cred
+                            </span>
+                          )}
                           {item.published_at && (
                             <span className="text-[10px] text-text-muted truncate">
                               {new Date(item.published_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}

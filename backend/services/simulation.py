@@ -103,6 +103,10 @@ async def run_simulation_round(
 ) -> tuple:
     shuffled = agents[:]
     random.shuffle(shuffled)
+    # If odd number of agents, pair the leftover with a random earlier agent
+    if len(shuffled) % 2 == 1:
+        partner = random.choice(shuffled[:-1])
+        shuffled.append(partner)
     pairs = [(shuffled[i], shuffled[i+1]) for i in range(0, len(shuffled)-1, 2)]
 
     updated_agents = {a.id: a for a in agents}

@@ -104,24 +104,36 @@ async def llm_call(
     return content
 
 
-async def llm_call_json(task: str, system_prompt: str, user_prompt: str) -> dict:
-    raw = await llm_call(task, system_prompt, user_prompt, json_mode=True)
+def _extract_json(raw: str) -> dict:
+    """Try multiple strategies to extract a JSON object from raw text."""
+    # 1. Direct parse
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
-        match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", raw)
-        if match:
+        pass
+    # 2. Markdown code block
+    match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", raw)
+    if match:
+        try:
             return json.loads(match.group(1))
-        raise ValueError(f"Could not parse JSON from LLM response: {raw[:200]}")
+        except json.JSONDecodeError:
+            pass
+    # 3. First {...} block (handles "Here is the JSON: {...}")
+    match = re.search(r"\{[\s\S]*\}", raw)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            pass
+    raise ValueError(f"Could not parse JSON from LLM response: {raw[:300]}")
+
+
+async def llm_call_json(task: str, system_prompt: str, user_prompt: str) -> dict:
+    raw = await llm_call(task, system_prompt, user_prompt, json_mode=True)
+    return _extract_json(raw)
 
 
 async def llm_call_json_with_usage(task: str, system_prompt: str, user_prompt: str) -> Tuple[dict, int]:
     """Returns (parsed_dict, total_tokens)."""
     raw, tokens = await llm_call_with_usage(task, system_prompt, user_prompt, json_mode=True)
-    try:
-        return json.loads(raw), tokens
-    except json.JSONDecodeError:
-        match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", raw)
-        if match:
-            return json.loads(match.group(1)), tokens
-        raise ValueError(f"Could not parse JSON from LLM response: {raw[:200]}")
+    return _extract_json(raw), tokens

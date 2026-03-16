@@ -4,21 +4,28 @@ import { useSettingsStore } from "@/lib/stores/settingsStore";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { Settings, Key, Cpu, Sliders } from "lucide-react";
+import { Settings, Key, Cpu, Sliders, Globe, Calendar } from "lucide-react";
 
 export default function SettingsPage() {
   const {
     agentCount,
     rounds,
+    defaultDomain,
+    defaultTimeHorizon,
     newsApiKey,
     gNewsApiKey,
     alphaVantageKey,
     setAgentCount,
     setRounds,
+    setDefaultDomain,
+    setDefaultTimeHorizon,
     setNewsApiKey,
     setGNewsApiKey,
     setAlphaVantageKey,
   } = useSettingsStore();
+
+  const domains = ["general", "finance", "technology", "politics", "science", "sports", "crypto", "climate"];
+  const horizons = ["1 week", "1 month", "3 months", "6 months", "1 year", "2+ years"];
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
@@ -82,6 +89,55 @@ export default function SettingsPage() {
               <div className="flex justify-between mt-0.5">
                 <span className="text-[10px] text-text-muted">2 · Quick</span>
                 <span className="text-[10px] text-text-muted">10 · Deep</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Prediction defaults */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>Prediction Defaults</CardTitle>
+            <Globe className="w-3.5 h-3.5 text-text-muted" />
+          </CardHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs text-text-secondary mb-2">Default domain</p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {domains.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDefaultDomain(d)}
+                    className={`text-xs px-2 py-1.5 rounded-md border transition-colors capitalize ${
+                      defaultDomain === d
+                        ? "bg-accent/15 border-accent/30 text-accent"
+                        : "border-border text-text-muted hover:border-border-strong hover:text-text-secondary"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-text-secondary mb-2 flex items-center gap-1.5">
+                <Calendar className="w-3 h-3" />
+                Default time horizon
+              </p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {horizons.map((h) => (
+                  <button
+                    key={h}
+                    onClick={() => setDefaultTimeHorizon(h)}
+                    className={`text-xs px-2 py-1.5 rounded-md border transition-colors ${
+                      defaultTimeHorizon === h
+                        ? "bg-accent/15 border-accent/30 text-accent"
+                        : "border-border text-text-muted hover:border-border-strong hover:text-text-secondary"
+                    }`}
+                  >
+                    {h}
+                  </button>
+                ))}
               </div>
             </div>
           </div>

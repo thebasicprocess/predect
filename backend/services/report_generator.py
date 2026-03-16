@@ -32,7 +32,10 @@ async def generate_report(
     claims_summary = "\n".join([f"- {c}" for c in set(all_claims[:20])])
     beliefs_summary = "\n".join([f"- {b}" for b in set(all_beliefs[:20])])
 
-    agent_consensus = min(0.9, len(set(all_claims)) / max(len(all_claims), 1))
+    # Consensus = 1 - uniqueness. If all claims repeat (agents agree), consensus is high.
+    # If every claim is unique (divergent views), consensus is low.
+    uniqueness = len(set(all_claims)) / max(len(all_claims), 1)
+    agent_consensus = round(max(0.05, 1.0 - uniqueness), 3)
 
     # First call: main report (no predictedEvents — kept separate to avoid LLM ignoring it)
     result, tokens1 = await llm_call_json_with_usage(
@@ -102,9 +105,16 @@ category must be one of: market, regulatory, technical, political, social""",
     events_data = events_result.get("events", [])
 
     score = float(result.get("confidence_score", 0.65))
+    score = max(0.0, min(1.0, score))
     band_low = max(0.0, score - 0.15)
     band_high = min(1.0, score + 0.15)
-    color = result.get("confidence_color", "#635BFF")
+    # Derive color from score — do not trust LLM to return correct hex
+    if score >= 0.7:
+        color = "#10B981"  # green
+    elif score >= 0.45:
+        color = "#F59E0B"  # amber
+    else:
+        color = "#EF4444"  # red
 
     scenarios_data = result.get("scenarios", {})
 

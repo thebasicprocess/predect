@@ -12,9 +12,13 @@ export interface SSEEvent {
 }
 
 export interface EvidenceItem {
+  id?: string;
   title: string;
   source: string;
   relevance_score: number;
+  credibility_score: number;
+  sentiment?: number | null;
+  entities?: string[];
   url: string;
   snippet?: string;
   published_at?: string;

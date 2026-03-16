@@ -11,7 +11,7 @@ import { useSettingsStore } from "@/lib/stores/settingsStore";
 import { startPrediction, streamPrediction, getPredictionResult, getPredictionResultFull, getPredictionHistory } from "@/lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BrainCircuit, Network, Plus, AlertCircle, RefreshCw, History, ChevronRight } from "lucide-react";
+import { BrainCircuit, Network, Plus, AlertCircle, RefreshCw, History, ChevronRight, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
@@ -40,12 +40,13 @@ function PredictPageInner() {
   const viewId = searchParams.get("view");
   const queryParam = searchParams.get("query");
 
+  const { agentCount, rounds, newsApiKey, gNewsApiKey, defaultDomain, defaultTimeHorizon } = useSettingsStore();
+
   const [query, setQueryLocal] = useState(queryParam ? decodeURIComponent(queryParam) : "");
-  const [domain, setDomain] = useState("general");
-  const [timeHorizon, setTimeHorizon] = useState("6 months");
+  const [domain, setDomain] = useState(defaultDomain || "general");
+  const [timeHorizon, setTimeHorizon] = useState(defaultTimeHorizon || "6 months");
   const [activeTab, setActiveTab] = useState<Tab>("configure");
   const [recentPredictions, setRecentPredictions] = useState<HistoryItem[]>([]);
-  const { agentCount, rounds, newsApiKey, gNewsApiKey } = useSettingsStore();
 
   const {
     addEvent,
@@ -439,6 +440,12 @@ function PredictPageInner() {
                 </button>
               </div>
             )}
+            {viewId && status === "complete" && (
+              <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-accent/5 border border-accent/15 text-xs text-text-muted">
+                <Link2 className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+                <span>Shared prediction — <button onClick={handleAddSession} className="text-accent hover:underline">start your own</button></span>
+              </div>
+            )}
             <ResultsView />
             {status === "complete" && predictionId && (
               <div className="mt-4 text-center">
@@ -578,6 +585,12 @@ function PredictPageInner() {
                     <RefreshCw className="w-3 h-3" />
                     Retry
                   </button>
+                </div>
+              )}
+              {viewId && status === "complete" && (
+                <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-accent/5 border border-accent/15 text-xs text-text-muted">
+                  <Link2 className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+                  <span>Shared prediction — <button onClick={handleAddSession} className="text-accent hover:underline">start your own</button></span>
                 </div>
               )}
               <ResultsView />
