@@ -58,9 +58,9 @@ const features = [
 ];
 
 const stats = [
-  { label: "AI Models", value: "6", icon: Cpu, suffix: "" },
+  { label: "AI Models", value: "4", icon: Cpu, suffix: "" },
   { label: "Agents per Prediction", value: "8+", icon: Activity, suffix: "" },
-  { label: "Evidence Sources", value: "4", icon: Database, suffix: "" },
+  { label: "Evidence Sources", value: "5", icon: Database, suffix: "" },
   { label: "Streaming Pipeline", value: "SSE", icon: Radio, suffix: "" },
 ];
 
