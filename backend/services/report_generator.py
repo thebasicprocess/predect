@@ -81,6 +81,24 @@ async def generate_report(
     uniqueness = len(set(all_claims)) / max(len(all_claims), 1)
     agent_consensus = round(max(0.05, 1.0 - uniqueness), 3)
 
+    # Simulation depth stats for synthesis context
+    total_unique_claims = len(set(all_claims))
+    high_freq_claims = sum(1 for c in claim_freq.values() if c >= 3)  # appeared in 3+ interactions
+    total_rounds = len(set(r.round for r in rounds))
+
+    # Conviction trend: sum all belief_shifts across all rounds
+    net_conviction = 0.0
+    shift_count = 0
+    for r in rounds:
+        for v in r.belief_shifts.values():
+            try:
+                net_conviction += float(v)
+                shift_count += 1
+            except (TypeError, ValueError):
+                pass
+    avg_conviction_change = round(net_conviction / max(shift_count, 1), 3)
+    conviction_trend = "strengthening" if avg_conviction_change > 0.05 else "weakening" if avg_conviction_change < -0.05 else "stable"
+
     tl_periods = _timeline_periods(time_horizon)
     ev_periods = _event_periods(time_horizon)
     tl_example = ",\n    ".join(
@@ -113,8 +131,10 @@ Output valid JSON only.""",
         user_prompt=f"""Query: {query}
 Domain: {domain}
 Time Horizon: {time_horizon}
-Evidence quality: {evidence_quality} (avg credibility: {avg_cred})
+Evidence quality: {evidence_quality} (avg credibility: {avg_cred}, {len(evidence_items)} sources)
 Agent consensus level: {round(agent_consensus * 100)}% (higher = more agreement)
+Simulation depth: {total_rounds} rounds, {total_unique_claims} unique claims, {high_freq_claims} high-frequency claims (3+ agents)
+Agent conviction trend: {conviction_trend} (avg change per round: {avg_conviction_change:+.3f})
 
 Evidence Summary:
 {evidence_summary}
