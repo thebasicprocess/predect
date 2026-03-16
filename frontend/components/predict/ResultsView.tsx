@@ -263,20 +263,28 @@ export function ResultsView() {
 
   const handleExportMarkdown = () => {
     if (!report) return;
-    const conf = report.confidence as { score?: number } | undefined;
+    const conf = report.confidence as { score?: number; band?: number[] } | undefined;
     const score = conf?.score ?? 0;
-    const scenarios = report.scenarios as { base?: { description: string; probability: number }; bull?: { description: string; probability: number }; bear?: { description: string; probability: number } } | undefined;
+    const band = conf?.band;
+    type ScenarioShape = { description: string; probability: number; triggers?: string[] };
+    const scenarios = report.scenarios as { base?: ScenarioShape; bull?: ScenarioShape; bear?: ScenarioShape } | undefined;
     const drivers = (report.keyDrivers as string[]) ?? [];
     const risks = (report.riskFactors as string[]) ?? [];
     const timeline = (report.timelineOutlook as { period: string; outlook: string }[]) ?? [];
     const events = (report.predictedEvents as { period: string; event: string; probability: number; category: string }[]) ?? [];
     const narratives = (report.dominantNarratives as string[]) ?? [];
+    const camps = (report.narrativeCamps as { narrative: string; sentiment: number; support_count: number; supporting_claims: string[]; key_agents: string[] }[]) ?? [];
+    const counterArg = (report.strongest_counter_argument as string) ?? "";
+    const wildcard = (report.wildcard_factor as string) ?? "";
 
     const lines: string[] = [
       `# ${report.headline ?? "Prediction Report"}`,
       ``,
       query ? `**Query:** ${query}` : "",
-      `**Confidence:** ${Math.round(score * 100)}%`,
+      domain ? `**Domain:** ${domain}` : "",
+      timeHorizon ? `**Time Horizon:** ${timeHorizon}` : "",
+      `**Confidence:** ${Math.round(score * 100)}%${band && band.length === 2 ? ` (${Math.round(band[0] * 100)}%–${Math.round(band[1] * 100)}%)` : ""}`,
+      agents.length > 0 ? `**Agents:** ${agents.length} · **Rounds:** ${totalRounds}` : "",
       ``,
       `## Verdict`,
       `${report.verdict ?? ""}`,
@@ -285,10 +293,23 @@ export function ResultsView() {
 
     if (scenarios) {
       lines.push(`## Scenarios`);
-      if (scenarios.base) lines.push(``, `### Base Case (${Math.round((scenarios.base.probability ?? 0) * 100)}%)`, scenarios.base.description ?? "");
-      if (scenarios.bull) lines.push(``, `### Bull Case (${Math.round((scenarios.bull.probability ?? 0) * 100)}%)`, scenarios.bull.description ?? "");
-      if (scenarios.bear) lines.push(``, `### Bear Case (${Math.round((scenarios.bear.probability ?? 0) * 100)}%)`, scenarios.bear.description ?? "");
+      const renderScenario = (label: string, s: ScenarioShape) => {
+        lines.push(``, `### ${label} (${Math.round((s.probability ?? 0) * 100)}%)`, s.description ?? "");
+        if (s.triggers && s.triggers.length > 0) {
+          lines.push(``, `**Watch for:** ${s.triggers.map((t) => `*${t}*`).join(" · ")}`);
+        }
+      };
+      if (scenarios.base) renderScenario("Base Case", scenarios.base);
+      if (scenarios.bull) renderScenario("Bull Case", scenarios.bull);
+      if (scenarios.bear) renderScenario("Bear Case", scenarios.bear);
       lines.push(``);
+    }
+
+    if (counterArg) {
+      lines.push(`## Strongest Counter-Argument`, `> ${counterArg}`, ``);
+    }
+    if (wildcard) {
+      lines.push(`## Wildcard Factor`, `> ${wildcard}`, ``);
     }
 
     if (drivers.length) {
@@ -303,15 +324,39 @@ export function ResultsView() {
     if (events.length) {
       lines.push(`## Predicted Events`);
       events.forEach((e, i) => {
-        lines.push(`${i + 1}. **${e.period}** (${Math.round(e.probability * 100)}%): ${e.event}`);
+        lines.push(`${i + 1}. **${e.period}** · ${e.category} · (${Math.round(e.probability * 100)}%): ${e.event}`);
       });
       lines.push(``);
     }
     if (narratives.length) {
       lines.push(`## Dominant Narratives`, narratives.map((n) => `- ${n}`).join("\n"), ``);
     }
+    if (camps.length) {
+      lines.push(`## Narrative Camps`);
+      camps.forEach((c) => {
+        const sentLabel = c.sentiment > 0.15 ? "bullish" : c.sentiment < -0.15 ? "bearish" : "neutral";
+        lines.push(``, `### ${c.narrative} *(${sentLabel}, ${c.support_count} claims)*`);
+        if (c.supporting_claims.length > 0) {
+          lines.push(c.supporting_claims.map((cl) => `- ${cl}`).join("\n"));
+        }
+        if (c.key_agents.length > 0) {
+          lines.push(`*Key agents: ${c.key_agents.join(", ")}*`);
+        }
+      });
+      lines.push(``);
+    }
+    if (evidence.length > 0) {
+      lines.push(`## Sources (Top 5)`);
+      const topSources = [...evidence]
+        .sort((a, b) => ((b.relevance_score ?? 0) * (b.credibility_score ?? 0.5)) - ((a.relevance_score ?? 0) * (a.credibility_score ?? 0.5)))
+        .slice(0, 5);
+      topSources.forEach((e) => {
+        lines.push(`- [${e.source ?? "Source"}] **${e.title ?? ""}**${e.url ? ` — <${e.url}>` : ""}`);
+      });
+      lines.push(``);
+    }
 
-    lines.push(`---`, `*Generated by PREDECT · Z.AI GLM Swarm Intelligence*`);
+    lines.push(`---`, `*Generated by PREDECT · Z.AI GLM Swarm Intelligence · ${new Date().toISOString().split("T")[0]}*`);
 
     const md = lines.filter((l) => l !== undefined).join("\n");
     const blob = new Blob([md], { type: "text/markdown" });
@@ -740,7 +785,7 @@ export function ResultsView() {
               <div className="space-y-2.5 mt-1">
                 {topEvidence.map((item, i) => {
                   const color = SOURCE_COLORS[item.source] || "#635BFF";
-                  const sentimentVal = (item as Record<string, unknown>).sentiment as number | null | undefined;
+                  const sentimentVal = item.sentiment;
                   const impact = Math.round(item.relevance_score * (item.credibility_score ?? 0.5) * 100);
                   return (
                     <div key={i} className="flex items-start gap-2.5">
