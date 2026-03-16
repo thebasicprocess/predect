@@ -16,6 +16,8 @@ export interface EvidenceItem {
   source: string;
   relevance_score: number;
   url: string;
+  snippet?: string;
+  published_at?: string;
 }
 
 export interface RoundEvent {

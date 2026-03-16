@@ -415,9 +415,12 @@ export function ResultsView() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-text-primary line-clamp-2 leading-snug">{item.title}</p>
-                        <div className="flex items-center gap-3 mt-1">
+                        {item.snippet && (
+                          <p className="text-[10px] text-text-muted leading-relaxed mt-1 line-clamp-2">{item.snippet}</p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1.5">
                           <div className="flex items-center gap-1">
-                            <div className="h-1 w-16 bg-white/8 rounded-full overflow-hidden">
+                            <div className="h-1 w-14 bg-white/8 rounded-full overflow-hidden">
                               <div
                                 className="h-full rounded-full"
                                 style={{ width: `${Math.round(item.relevance_score * 100)}%`, background: color }}
@@ -427,6 +430,11 @@ export function ResultsView() {
                               {Math.round(item.relevance_score * 100)}%
                             </span>
                           </div>
+                          {item.published_at && (
+                            <span className="text-[10px] text-text-muted truncate">
+                              {new Date(item.published_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <a
