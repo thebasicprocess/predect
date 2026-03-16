@@ -1,9 +1,10 @@
 #!/bin/bash
 set -e
-cd "$(dirname "$0")"
-if [ -f "venv/Scripts/activate" ]; then
-  source venv/Scripts/activate
+SCRIPT_DIR="$(dirname "$0")"
+cd "$SCRIPT_DIR/.."
+if [ -f "backend/venv/Scripts/activate" ]; then
+  source backend/venv/Scripts/activate
 else
-  source venv/bin/activate
+  source backend/venv/bin/activate
 fi
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn backend.main:app --host 0.0.0.0 --port "${PORT:-8000}"
