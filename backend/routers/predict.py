@@ -163,6 +163,7 @@ Types: Person (named individual), Organization (company/gov/group), Event (incid
             agent_count=request.agent_count or 8,
             rounds=request.rounds or 5,
             on_event=emit,
+            domain=request.domain or "general",
         )
 
         with conn:

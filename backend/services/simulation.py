@@ -5,11 +5,23 @@ from backend.models.simulation import AgentPersona, RoundEvent
 from backend.models.evidence import EvidenceItem
 from backend.services.llm_router import llm_call_json_with_usage
 
+DOMAIN_PERSONA_HINTS: dict = {
+    "finance": "Include personas such as: hedge fund manager, retail investor, central bank analyst, macro economist, bearish short-seller, fintech entrepreneur, pension fund manager.",
+    "technology": "Include personas such as: software engineer, venture capitalist, AI researcher, tech policy regulator, enterprise CTO, open-source maintainer, tech journalist.",
+    "politics": "Include personas such as: political analyst, policy advisor, grassroots activist, foreign policy expert, investigative journalist, opposition leader, diplomat.",
+    "science": "Include personas such as: research scientist, science communicator, ethics board member, industry R&D lead, government science advisor, skeptic researcher.",
+    "sports": "Include personas such as: sports analyst, athlete, team coach, sports economist, fan advocate, sports journalist, data scientist.",
+    "crypto": "Include personas such as: DeFi developer, crypto trader, blockchain skeptic, institutional crypto analyst, regulatory lawyer, NFT creator, HODLer.",
+    "climate": "Include personas such as: climate scientist, environmental activist, fossil fuel industry rep, green tech entrepreneur, policy economist, IPCC analyst.",
+    "general": "Make agents diverse: domain experts, skeptics, optimists, insiders, public voices, international perspectives.",
+}
+
 
 async def generate_personas(
     topic: str,
     evidence_items: List[EvidenceItem],
     count: int = 8,
+    domain: str = "general",
 ) -> tuple:
     """Returns (agents, tokens)."""
     entities = []
@@ -22,6 +34,8 @@ async def generate_personas(
         f"- [{item.source}] {item.title}" for item in evidence_items[:8]
     ]) if evidence_items else "No specific evidence available."
 
+    domain_hint = DOMAIN_PERSONA_HINTS.get(domain, DOMAIN_PERSONA_HINTS["general"])
+
     result, tokens = await llm_call_json_with_usage(
         "persona_generation",
         system_prompt="You are a simulation designer creating diverse agent personas for a prediction simulation. Ground agent beliefs in the provided evidence.",
@@ -30,6 +44,8 @@ Key entities from evidence: {entity_str}
 
 Recent evidence headlines:
 {evidence_headlines}
+
+Domain context: {domain_hint}
 
 Generate {count} diverse agent personas. Each should represent a different perspective, background, or stakeholder type related to the topic. Ground their beliefs in the evidence provided.
 
@@ -153,8 +169,9 @@ async def run_full_simulation(
     agent_count: int = 8,
     rounds: int = 5,
     on_event: Callable[[dict], Awaitable[None]] = None,
+    domain: str = "general",
 ) -> tuple:
-    agents, persona_tokens = await generate_personas(topic, evidence_items, agent_count)
+    agents, persona_tokens = await generate_personas(topic, evidence_items, agent_count, domain)
 
     if on_event:
         await on_event({
