@@ -108,6 +108,14 @@ interface PredictionStoreState {
   setQuery: (q: string) => void;
   reset: () => void;
 
+  /** Bulk-restore all fields for the active session (used when loading history). */
+  restoreFullData: (data: {
+    result: Record<string, unknown>;
+    agents: AgentPersona[];
+    roundEvents: RoundEvent[];
+    evidence: EvidenceItem[];
+  }) => void;
+
   // ── Session actions ──
   /** Save current active state into sessions[] and reset flat state (start fresh). */
   addSession: (currentQuery: string) => void;
@@ -274,6 +282,19 @@ export const usePredictionStore = create<PredictionStoreState>((set) => ({
         ),
       };
     }),
+
+  restoreFullData: ({ result, agents, roundEvents, evidence }) =>
+    set((state) => ({
+      result,
+      agents,
+      roundEvents,
+      evidence,
+      sessions: state.sessions.map((s) =>
+        s.sessionId === state.activeSessionId
+          ? { ...s, result, agents, roundEvents, evidence }
+          : s
+      ),
+    })),
 
   // ── Session actions ──
   addSession: (currentQuery) =>

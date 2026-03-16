@@ -49,6 +49,7 @@ const TABS = [
   { id: "scenarios", label: "Scenarios" },
   { id: "drivers", label: "Drivers" },
   { id: "timeline", label: "Timeline" },
+  { id: "simulation", label: "Simulation" },
   { id: "narratives", label: "Narratives" },
   { id: "evidence", label: "Sources" },
   { id: "agents", label: "Agents" },
@@ -355,6 +356,77 @@ export function ResultsView() {
               </Card>
             )}
           </>
+        )}
+
+        {/* Simulation tab */}
+        {activeTab === "simulation" && (
+          <div className="space-y-3">
+            {roundEvents.length > 0 ? (
+              roundEvents.map((round, i) => {
+                const color1 = AGENT_COLORS[(agents as AgentPersona[]).findIndex((a) => a.name === round.agent1_name) % AGENT_COLORS.length] || AGENT_COLORS[0];
+                const color2 = AGENT_COLORS[(agents as AgentPersona[]).findIndex((a) => a.name === round.agent2_name) % AGENT_COLORS.length] || AGENT_COLORS[1];
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <Card>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/6 text-text-muted">
+                          Round {round.round}
+                        </span>
+                        <span className="text-[11px] font-semibold" style={{ color: color1 }}>{round.agent1_name}</span>
+                        <span className="text-[10px] text-text-muted">×</span>
+                        <span className="text-[11px] font-semibold" style={{ color: color2 }}>{round.agent2_name}</span>
+                      </div>
+                      {round.interaction_summary && (
+                        <p className="text-xs text-text-secondary mb-3 leading-relaxed">{round.interaction_summary}</p>
+                      )}
+                      {(round.agent1_statement || round.agent2_statement) && (
+                        <div className="space-y-2 mb-3">
+                          {round.agent1_statement && (
+                            <div className="flex gap-2">
+                              <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold" style={{ background: `${color1}25`, color: color1 }}>
+                                {round.agent1_name[0]}
+                              </div>
+                              <div className="text-[11px] text-text-secondary italic leading-relaxed border-l-2 pl-2" style={{ borderColor: `${color1}40` }}>
+                                &ldquo;{round.agent1_statement}&rdquo;
+                              </div>
+                            </div>
+                          )}
+                          {round.agent2_statement && (
+                            <div className="flex gap-2">
+                              <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold" style={{ background: `${color2}25`, color: color2 }}>
+                                {round.agent2_name[0]}
+                              </div>
+                              <div className="text-[11px] text-text-secondary italic leading-relaxed border-l-2 pl-2" style={{ borderColor: `${color2}40` }}>
+                                &ldquo;{round.agent2_statement}&rdquo;
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {round.emergent_claims?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border">
+                          {round.emergent_claims.map((claim, ci) => (
+                            <span key={ci} className="text-[10px] px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
+                              {claim}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  </motion.div>
+                );
+              })
+            ) : (
+              <div className="text-center py-12 text-text-muted">
+                <p className="text-xs">Simulation data not available for this prediction.</p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Narratives tab */}

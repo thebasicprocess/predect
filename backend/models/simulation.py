@@ -20,6 +20,8 @@ class RoundEvent(BaseModel):
     interaction_summary: str
     emergent_claims: List[str]
     belief_shifts: Dict[str, Any] = {}
+    agent1_statement: Optional[str] = None
+    agent2_statement: Optional[str] = None
 
 
 class SimulationState(BaseModel):

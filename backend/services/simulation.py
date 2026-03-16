@@ -97,6 +97,8 @@ Return JSON: {{
             agent2_name=agent2.name,
             interaction_summary=result.get("interaction_summary", ""),
             emergent_claims=result.get("emergent_claims", []),
+            agent1_statement=result.get("agent1_statement") or None,
+            agent2_statement=result.get("agent2_statement") or None,
         )
         events.append(event)
 
@@ -116,11 +118,7 @@ Return JSON: {{
                 "model": "glm-4.5-air",
                 "task": "simulation_round",
                 "tokens": tokens,
-                "data": {
-                    **event.model_dump(),
-                    "agent1_statement": result.get("agent1_statement", ""),
-                    "agent2_statement": result.get("agent2_statement", ""),
-                },
+                "data": event.model_dump(),
             })
 
     return events, list(updated_agents.values())

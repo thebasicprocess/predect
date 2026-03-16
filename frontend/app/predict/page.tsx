@@ -8,7 +8,7 @@ import { ActivityPanel } from "@/components/predict/ActivityPanel";
 import { ResultsView } from "@/components/predict/ResultsView";
 import { usePredictionStore } from "@/lib/stores/predictionStore";
 import { useSettingsStore } from "@/lib/stores/settingsStore";
-import { startPrediction, streamPrediction, getPredictionResult } from "@/lib/api";
+import { startPrediction, streamPrediction, getPredictionResult, getPredictionResultFull } from "@/lib/api";
 import Link from "next/link";
 import { BrainCircuit, Network, Plus, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -45,6 +45,7 @@ function PredictPageInner() {
     addEventToSession,
     setResultForSession,
     setStatusForSession,
+    restoreFullData,
   } = usePredictionStore();
 
   const status = usePredictionStore((s) => s.status);
@@ -81,10 +82,16 @@ function PredictPageInner() {
     reset();
     setPredictionId(viewId);
     setStatus("running"); // show loading state briefly
-    getPredictionResult(viewId)
+    getPredictionResultFull(viewId)
       .then((data) => {
         if (data?.result) {
           setResult(data.result);
+          restoreFullData({
+            result: data.result,
+            agents: data.agents || [],
+            roundEvents: data.rounds || [],
+            evidence: data.evidence || [],
+          });
           setStatus("complete");
           setActiveTab("pipeline");
         } else {

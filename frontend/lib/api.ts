@@ -63,6 +63,12 @@ export async function getPredictionResult(id: string) {
   return res.json();
 }
 
+export async function getPredictionResultFull(id: string) {
+  const res = await fetch(`${API_URL}/api/predict/${id}/result/full`);
+  if (!res.ok) throw new Error("Failed to get full result");
+  return res.json();
+}
+
 export async function getPredictionHistory() {
   const res = await fetch(`${API_URL}/api/predict/history`);
   if (!res.ok) return [];

@@ -292,3 +292,47 @@ async def get_result(prediction_id: str):
         result=result,
         created_at=row["created_at"],
     )
+
+
+@router.get("/{prediction_id}/result/full")
+async def get_result_full(prediction_id: str):
+    """Returns the full prediction data including agents, round events, and evidence items."""
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM predictions WHERE id = ?", (prediction_id,)).fetchone()
+        if not row:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Prediction not found")
+
+        result = json.loads(row["result"]) if row["result"] else None
+
+        # Load simulation data (agents + rounds)
+        sim_row = conn.execute(
+            "SELECT * FROM simulations WHERE prediction_id = ? ORDER BY created_at DESC LIMIT 1",
+            (prediction_id,)
+        ).fetchone()
+        agents = json.loads(sim_row["agents"]) if sim_row and sim_row["agents"] else []
+        rounds = json.loads(sim_row["rounds"]) if sim_row and sim_row["rounds"] else []
+
+        # Load evidence items
+        ev_row = conn.execute(
+            "SELECT * FROM evidence_bundles WHERE prediction_id = ? ORDER BY created_at DESC LIMIT 1",
+            (prediction_id,)
+        ).fetchone()
+        evidence = json.loads(ev_row["items"]) if ev_row and ev_row["items"] else []
+
+        return {
+            "id": row["id"],
+            "query": row["query"],
+            "domain": row["domain"],
+            "time_horizon": row["time_horizon"],
+            "status": row["status"],
+            "confidence": row["confidence"],
+            "result": result,
+            "created_at": row["created_at"],
+            "agents": agents,
+            "rounds": rounds,
+            "evidence": evidence,
+        }
+    finally:
+        conn.close()
