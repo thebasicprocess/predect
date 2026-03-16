@@ -132,7 +132,15 @@ export function Navigation() {
                   transition={{ type: "spring", stiffness: 400, damping: 35 }}
                 />
               )}
-              <Icon className="w-5 h-5" />
+              <div className="relative">
+                <Icon className="w-5 h-5" />
+                {href === "/predict" && isRunning && !active && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-warning" />
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-medium leading-none">{label}</span>
             </Link>
           );

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useSettingsStore } from "@/lib/stores/settingsStore";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Input";
@@ -78,6 +78,11 @@ export function ConfigPanel({
     };
   }, [query]);
 
+  const isMac = useMemo(() => {
+    if (typeof window === "undefined") return true;
+    return /Mac|iPod|iPhone|iPad/.test(window.navigator.platform);
+  }, []);
+
   const charsUsed = query.length;
   const charsLeft = MAX_CHARS - charsUsed;
   const isNearLimit = charsLeft <= 50;
@@ -133,7 +138,7 @@ export function ConfigPanel({
             {loading ? "Running..." : "Run Prediction"}
           </Button>
           <div className="flex items-center justify-between px-0.5">
-            <p className="text-[10px] text-text-muted font-mono select-none">⌘↵ to run</p>
+            <p className="text-[10px] text-text-muted font-mono select-none">{isMac ? "⌘↵" : "Ctrl+↵"} to run</p>
             {!loading && query.trim() && (
               <p className="text-[10px] text-text-muted select-none">
                 ~{Math.max(1, Math.round((agentCount * rounds) / 10))}–{Math.max(2, Math.round((agentCount * rounds) / 6))} min
