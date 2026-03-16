@@ -165,9 +165,9 @@ Generate a comprehensive prediction report as JSON:
   "verdict": "2-3 sentence verdict with specific details, citing key evidence and agent consensus",
   "confidence_score": <float 0.10-0.95 calibrated to evidence quality and agent consensus>,
   "scenarios": {{
-    "base": {{"description": "Most likely scenario (2-3 sentences)", "probability": <float>}},
-    "bull": {{"description": "Optimistic scenario (2-3 sentences)", "probability": <float>}},
-    "bear": {{"description": "Pessimistic scenario (2-3 sentences)", "probability": <float>}}
+    "base": {{"description": "Most likely scenario (2-3 sentences)", "probability": <float>, "triggers": ["observable signal 1 that confirms this plays out", "signal 2"]}},
+    "bull": {{"description": "Optimistic scenario (2-3 sentences)", "probability": <float>, "triggers": ["specific catalyst or signal 1", "signal 2"]}},
+    "bear": {{"description": "Pessimistic scenario (2-3 sentences)", "probability": <float>, "triggers": ["specific risk event 1 that would cause this", "signal 2"]}}
   }},
   "keyDrivers": ["specific driver 1", "specific driver 2", "specific driver 3", "specific driver 4"],
   "riskFactors": ["specific risk 1", "specific risk 2", "specific risk 3"],

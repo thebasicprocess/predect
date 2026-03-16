@@ -5,6 +5,7 @@ from typing import Optional, List
 class ScenarioItem(BaseModel):
     description: str
     probability: float
+    triggers: List[str] = []
 
 
 class Scenarios(BaseModel):

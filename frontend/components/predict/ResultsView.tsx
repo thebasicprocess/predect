@@ -41,9 +41,9 @@ interface PredictionResult {
   verdict: string;
   confidence: { score: number; band: number[]; color: string };
   scenarios: {
-    base: { description: string; probability: number };
-    bull: { description: string; probability: number };
-    bear: { description: string; probability: number };
+    base: { description: string; probability: number; triggers?: string[] };
+    bull: { description: string; probability: number; triggers?: string[] };
+    bear: { description: string; probability: number; triggers?: string[] };
   };
   keyDrivers: string[];
   riskFactors: string[];
@@ -673,6 +673,17 @@ export function ResultsView() {
                     <p className="text-xs text-text-secondary">
                       {scenario.description}
                     </p>
+                    {scenario.triggers && scenario.triggers.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-[9px] font-mono text-text-muted uppercase tracking-wide">Watch for:</p>
+                        {scenario.triggers.map((trigger, ti) => (
+                          <div key={ti} className="flex items-start gap-1.5">
+                            <div className="w-1 h-1 rounded-full mt-1.5 flex-shrink-0" style={{ background: `${color}80` }} />
+                            <span className="text-[11px] text-text-muted leading-relaxed">{trigger}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="mt-2">
                       <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
                         <motion.div
