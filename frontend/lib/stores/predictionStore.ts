@@ -33,6 +33,8 @@ export interface RoundEvent {
   emergent_claims: string[];
   agent1_statement?: string;
   agent2_statement?: string;
+  key_disagreement?: string;
+  belief_shifts?: Record<string, number>;
 }
 
 export interface AgentPersona {

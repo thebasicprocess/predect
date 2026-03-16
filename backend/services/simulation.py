@@ -72,12 +72,18 @@ async def _run_pair(
     agent2: AgentPersona,
     topic: str,
     prior_claims: list[str] | None = None,
+    evidence_snippets: list[str] | None = None,
 ) -> tuple:
     """Run a single pair interaction; returns (RoundEvent, result_dict, tokens)."""
     prior_context = ""
     if prior_claims and round_num > 1:
         top_claims = prior_claims[:6]
         prior_context = f"\nClaims that emerged in prior rounds:\n" + "\n".join(f"- {c}" for c in top_claims) + "\n"
+
+    # Round 1: inject key evidence snippets so agents can cite concrete data
+    evidence_context = ""
+    if evidence_snippets and round_num == 1:
+        evidence_context = "\nKey evidence (cite these in arguments):\n" + "\n".join(f"- {s}" for s in evidence_snippets[:5]) + "\n"
 
     # Show the most recent 3 beliefs so evolved thinking carries through rounds
     a1_beliefs = agent1.beliefs[-3:] if agent1.beliefs else agent1.beliefs
@@ -87,7 +93,7 @@ async def _run_pair(
         "simulation_round",
         system_prompt="You are simulating a debate between expert agents analyzing a prediction topic. Make statements specific, grounded in mechanisms and data, not vague assertions.",
         user_prompt=f"""Round {round_num}. Topic: {topic}
-{prior_context}
+{prior_context}{evidence_context}
 Agent 1: {agent1.name} ({agent1.role})
 Current beliefs: {'; '.join(a1_beliefs)}
 Bias: {agent1.behavioral_bias}
@@ -137,6 +143,7 @@ async def run_simulation_round(
     topic: str,
     on_event: Callable[[dict], Awaitable[None]] = None,
     prior_claims: list[str] | None = None,
+    evidence_snippets: list[str] | None = None,
 ) -> tuple:
     shuffled = agents[:]
     random.shuffle(shuffled)
@@ -150,7 +157,7 @@ async def run_simulation_round(
 
     # Run all pairs in this round in parallel, sharing prior round context
     pair_results = await asyncio.gather(
-        *[_run_pair(round_num, a1, a2, topic, prior_claims) for a1, a2 in pairs],
+        *[_run_pair(round_num, a1, a2, topic, prior_claims, evidence_snippets) for a1, a2 in pairs],
         return_exceptions=True,
     )
 
@@ -206,12 +213,20 @@ async def run_full_simulation(
             "data": {"agents": [a.model_dump() for a in agents]},
         })
 
+    # Prepare compact evidence snippets for round 1 context injection
+    ev_snippets: list[str] = []
+    for item in sorted(evidence_items[:10], key=lambda x: x.relevance_score, reverse=True)[:5]:
+        snippet = (item.snippet or "")[:200].strip()
+        if snippet:
+            ev_snippets.append(f"[{item.source}] {item.title}: {snippet}")
+
     all_rounds = []
     accumulated_claims: list[str] = []
     for r in range(1, rounds + 1):
         round_events, agents = await run_simulation_round(
             r, agents, topic, on_event,
             prior_claims=accumulated_claims[-8:] if accumulated_claims else None,
+            evidence_snippets=ev_snippets if r == 1 else None,
         )
         all_rounds.extend(round_events)
         # Accumulate unique emergent claims for the next round's context

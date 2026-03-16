@@ -831,7 +831,13 @@ export function ResultsView() {
                             <span className="text-[11px] font-semibold" style={{ color: color2 }}>{round.agent2_name}</span>
                           </div>
                           {round.interaction_summary && (
-                            <p className="text-xs text-text-secondary mb-3 leading-relaxed">{round.interaction_summary}</p>
+                            <p className="text-xs text-text-secondary mb-2 leading-relaxed">{round.interaction_summary}</p>
+                          )}
+                          {(round as RoundEvent & { key_disagreement?: string }).key_disagreement && (
+                            <div className="flex items-start gap-1.5 mb-3 px-2 py-1.5 rounded-lg bg-warning/6 border border-warning/15">
+                              <span className="text-[9px] font-mono text-warning/70 flex-shrink-0 mt-0.5 uppercase tracking-wide">Dispute</span>
+                              <p className="text-[11px] text-warning/90 leading-snug">{(round as RoundEvent & { key_disagreement?: string }).key_disagreement}</p>
+                            </div>
                           )}
                           {(round.agent1_statement || round.agent2_statement) && (
                             <div className="space-y-2 mb-3">
