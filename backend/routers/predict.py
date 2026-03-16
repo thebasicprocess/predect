@@ -181,6 +181,7 @@ Types: Person (named individual), Organization (company/gov/group), Event (incid
             evidence_items=evidence_items,
             agents=agents,
             rounds=rounds,
+            on_event=emit,
         )
 
         await emit({

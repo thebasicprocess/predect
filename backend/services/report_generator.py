@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Callable, Awaitable
 from backend.models.prediction import (
     PredictionReport, Scenarios, ScenarioItem, TimelineItem, ConfidenceBand, PredictedEvent, NarrativeCamp
 )
@@ -48,6 +48,7 @@ async def generate_report(
     evidence_items: List[EvidenceItem],
     agents: List[AgentPersona],
     rounds: List[RoundEvent],
+    on_event: Callable[[dict], Awaitable[None]] | None = None,
 ) -> tuple:
     """Returns (PredictionReport, total_tokens)."""
     all_claims = []
@@ -91,6 +92,8 @@ async def generate_report(
     ])
 
     # First call: main report (no predictedEvents — kept separate to avoid LLM ignoring it)
+    if on_event:
+        await on_event({"phase": "analysis", "step": 5, "totalSteps": 6, "message": "Synthesizing prediction report...", "model": "glm-4.7", "task": "prediction_synthesis", "tokens": 0})
     result, tokens1 = await llm_call_json_with_usage(
         "prediction_synthesis",
         system_prompt="""You are a world-class analyst synthesizing evidence and simulation data into a structured prediction report.
@@ -129,6 +132,8 @@ Generate a comprehensive prediction report as JSON:
     )
 
     # Second call: dedicated predicted events (wrapped in object for reliable json_mode)
+    if on_event:
+        await on_event({"phase": "analysis", "step": 5, "totalSteps": 6, "message": "Predicting timeline events...", "model": "glm-4.7", "task": "prediction_synthesis", "tokens": tokens1})
     headline = result.get("headline", f"Prediction for: {query}")
     events_result, tokens2 = await llm_call_json_with_usage(
         "prediction_synthesis",
@@ -166,6 +171,8 @@ category must be one of: market, regulatory, technical, political, social""",
     scenarios_data = result.get("scenarios", {})
 
     # Third call: narrative camp analysis using glm-5
+    if on_event:
+        await on_event({"phase": "analysis", "step": 5, "totalSteps": 6, "message": "Analyzing opinion landscape...", "model": "glm-5", "task": "public_opinion_analysis", "tokens": tokens2})
     all_claims_for_narrative = sorted_claims[:30]
     agent_names_roles = [f"{a.name} ({a.role})" for a in agents[:8]]
     narrative_camps: list[NarrativeCamp] = []
