@@ -28,7 +28,7 @@ interface HistoryItem {
   query: string;
   domain: string;
   time_horizon: string;
-  status: string;
+  status: "complete" | "failed" | "running";
   confidence: number | null;
   headline: string | null;
   created_at: string;
@@ -206,7 +206,7 @@ function PredictPageInner() {
   useEffect(() => {
     getPredictionHistory()
       .then((data) => {
-        const completed = (data as HistoryItem[]).filter((p) => p.status === "completed").slice(0, 6);
+        const completed = (data as HistoryItem[]).filter((p) => p.status === "complete").slice(0, 6);
         setRecentPredictions(completed);
       })
       .catch(() => {});

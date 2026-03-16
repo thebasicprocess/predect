@@ -164,40 +164,112 @@ export function ResultsView() {
       >
         {/* Report tab */}
         {activeTab === "report" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Summary</CardTitle>
-            </CardHeader>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              {report.verdict}
-            </p>
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              {(
-                [
-                  { key: "base", label: "Base", color: "#635BFF", icon: Minus },
-                  { key: "bull", label: "Bull", color: "#10B981", icon: TrendingUp },
-                  { key: "bear", label: "Bear", color: "#EF4444", icon: TrendingDown },
-                ] as const
-              ).map(({ key, label, color, icon: Icon }) => {
-                const scenario = report.scenarios[key];
-                return (
-                  <div
-                    key={key}
-                    className="p-3 rounded-lg bg-white/2 border border-border text-center"
-                  >
-                    <Icon className="w-4 h-4 mx-auto mb-1" style={{ color }} />
+          <div className="space-y-3">
+            {/* Confidence band */}
+            {Array.isArray(report.confidence.band) && report.confidence.band.length === 2 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Confidence Interval</CardTitle>
+                </CardHeader>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-xs font-mono text-text-muted w-8">{Math.round(report.confidence.band[0] * 100)}%</span>
+                  <div className="flex-1 h-2 bg-white/8 rounded-full overflow-hidden relative">
                     <div
-                      className="text-lg font-bold font-mono"
-                      style={{ color }}
-                    >
-                      {Math.round(scenario.probability * 100)}%
-                    </div>
-                    <div className="text-xs text-text-muted">{label}</div>
+                      className="absolute top-0 h-full rounded-full opacity-30"
+                      style={{
+                        left: `${report.confidence.band[0] * 100}%`,
+                        right: `${(1 - report.confidence.band[1]) * 100}%`,
+                        background: confidenceColor,
+                      }}
+                    />
+                    <motion.div
+                      className="absolute top-0 h-full w-0.5 rounded-full"
+                      style={{
+                        left: `${report.confidence.score * 100}%`,
+                        background: confidenceColor,
+                        boxShadow: `0 0 6px ${confidenceColor}`,
+                      }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.4 }}
+                    />
                   </div>
-                );
-              })}
+                  <span className="text-xs font-mono text-text-muted w-8 text-right">{Math.round(report.confidence.band[1] * 100)}%</span>
+                </div>
+                <p className="text-[10px] text-text-muted mt-2">
+                  Point estimate: <span className="font-mono" style={{ color: confidenceColor }}>{Math.round(report.confidence.score * 100)}%</span>
+                  {" · "}range: <span className="font-mono">{Math.round(report.confidence.band[0] * 100)}%–{Math.round(report.confidence.band[1] * 100)}%</span>
+                </p>
+              </Card>
+            )}
+
+            {/* Scenario probability summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Scenario Probabilities</CardTitle>
+              </CardHeader>
+              <div className="space-y-2.5 mt-1">
+                {(
+                  [
+                    { key: "base", label: "Base Case", color: "#635BFF", icon: Minus },
+                    { key: "bull", label: "Bull Case", color: "#10B981", icon: TrendingUp },
+                    { key: "bear", label: "Bear Case", color: "#EF4444", icon: TrendingDown },
+                  ] as const
+                ).map(({ key, label, color, icon: Icon }) => {
+                  const scenario = report.scenarios[key];
+                  const pct = Math.round(scenario.probability * 100);
+                  return (
+                    <div key={key} className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 w-24 flex-shrink-0">
+                        <Icon className="w-3 h-3 flex-shrink-0" style={{ color }} />
+                        <span className="text-xs text-text-muted">{label}</span>
+                      </div>
+                      <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ background: color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+                        />
+                      </div>
+                      <span className="text-xs font-mono w-8 text-right flex-shrink-0" style={{ color }}>{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* Key stats row */}
+            <div className="grid grid-cols-2 gap-3">
+              {report.agentConsensus !== undefined && (
+                <div className="p-3 rounded-xl bg-white/2 border border-border text-center">
+                  <div className="text-xl font-bold font-mono" style={{ color: confidenceColor }}>
+                    {Math.round(report.agentConsensus * 100)}%
+                  </div>
+                  <div className="text-[10px] text-text-muted mt-0.5">Agent Consensus</div>
+                </div>
+              )}
+              {report.keyDrivers?.length > 0 && (
+                <div className="p-3 rounded-xl bg-white/2 border border-border text-center">
+                  <div className="text-xl font-bold font-mono text-accent">{report.keyDrivers.length}</div>
+                  <div className="text-[10px] text-text-muted mt-0.5">Key Drivers</div>
+                </div>
+              )}
+              {report.riskFactors?.length > 0 && (
+                <div className="p-3 rounded-xl bg-white/2 border border-border text-center">
+                  <div className="text-xl font-bold font-mono text-warning">{report.riskFactors.length}</div>
+                  <div className="text-[10px] text-text-muted mt-0.5">Risk Factors</div>
+                </div>
+              )}
+              {evidence.length > 0 && (
+                <div className="p-3 rounded-xl bg-white/2 border border-border text-center">
+                  <div className="text-xl font-bold font-mono text-success">{evidence.length}</div>
+                  <div className="text-[10px] text-text-muted mt-0.5">Sources</div>
+                </div>
+              )}
             </div>
-          </Card>
+          </div>
         )}
 
         {/* Scenarios tab */}
