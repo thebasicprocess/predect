@@ -46,6 +46,8 @@ export interface AgentPersona {
 export interface PredictionSession {
   sessionId: string;
   query: string;
+  domain: string;
+  timeHorizon: string;
   status: "idle" | "running" | "complete" | "error";
   predictionId: string | null;
   events: SSEEvent[];
@@ -70,6 +72,8 @@ function makeSessionId(): string {
 
 const blankSession = (): Omit<PredictionSession, "sessionId" | "createdAt"> => ({
   query: "",
+  domain: "",
+  timeHorizon: "",
   predictionId: null,
   status: "idle",
   events: [],
@@ -95,6 +99,8 @@ interface PredictionStoreState {
   evidence: EvidenceItem[];
   error: string | null;
   query: string;
+  domain: string;
+  timeHorizon: string;
 
   // ── Session management ──
   sessions: PredictionSession[];   // all sessions (incl. active)
@@ -110,6 +116,8 @@ interface PredictionStoreState {
   setStatusForSession: (sessionId: string, s: "idle" | "running" | "complete" | "error") => void;
   setResult: (r: Record<string, unknown>) => void;
   setQuery: (q: string) => void;
+  setDomain: (d: string) => void;
+  setTimeHorizon: (h: string) => void;
   reset: () => void;
 
   /** Bulk-restore all fields for the active session (used when loading history). */
@@ -118,6 +126,8 @@ interface PredictionStoreState {
     agents: AgentPersona[];
     roundEvents: RoundEvent[];
     evidence: EvidenceItem[];
+    domain?: string;
+    timeHorizon?: string;
   }) => void;
 
   // ── Session actions ──
@@ -273,6 +283,22 @@ export const usePredictionStore = create<PredictionStoreState>((set) => ({
       ),
     })),
 
+  setDomain: (domain) =>
+    set((state) => ({
+      domain,
+      sessions: state.sessions.map((s) =>
+        s.sessionId === state.activeSessionId ? { ...s, domain } : s
+      ),
+    })),
+
+  setTimeHorizon: (timeHorizon) =>
+    set((state) => ({
+      timeHorizon,
+      sessions: state.sessions.map((s) =>
+        s.sessionId === state.activeSessionId ? { ...s, timeHorizon } : s
+      ),
+    })),
+
   reset: () =>
     set((state) => {
       const blank = blankSession();
@@ -287,15 +313,25 @@ export const usePredictionStore = create<PredictionStoreState>((set) => ({
       };
     }),
 
-  restoreFullData: ({ result, agents, roundEvents, evidence }) =>
+  restoreFullData: ({ result, agents, roundEvents, evidence, domain, timeHorizon }) =>
     set((state) => ({
       result,
       agents,
       roundEvents,
       evidence,
+      ...(domain !== undefined ? { domain } : {}),
+      ...(timeHorizon !== undefined ? { timeHorizon } : {}),
       sessions: state.sessions.map((s) =>
         s.sessionId === state.activeSessionId
-          ? { ...s, result, agents, roundEvents, evidence }
+          ? {
+              ...s,
+              result,
+              agents,
+              roundEvents,
+              evidence,
+              ...(domain !== undefined ? { domain } : {}),
+              ...(timeHorizon !== undefined ? { timeHorizon } : {}),
+            }
           : s
       ),
     })),
@@ -309,6 +345,8 @@ export const usePredictionStore = create<PredictionStoreState>((set) => ({
           ? {
               ...s,
               query: currentQuery || state.query,
+              domain: state.domain,
+              timeHorizon: state.timeHorizon,
               predictionId: state.predictionId,
               status: state.status,
               events: state.events,
@@ -362,6 +400,8 @@ export const usePredictionStore = create<PredictionStoreState>((set) => ({
           ? {
               ...s,
               query: state.query,
+              domain: state.domain,
+              timeHorizon: state.timeHorizon,
               predictionId: state.predictionId,
               status: state.status,
               events: state.events,
@@ -384,6 +424,8 @@ export const usePredictionStore = create<PredictionStoreState>((set) => ({
         sessions: syncedSessions,
         // Restore flat state from the target session
         query: target.query,
+        domain: target.domain,
+        timeHorizon: target.timeHorizon,
         predictionId: target.predictionId,
         status: target.status,
         events: target.events,
@@ -410,6 +452,8 @@ export const usePredictionStore = create<PredictionStoreState>((set) => ({
           activeSessionId: next.sessionId,
           sessions: remaining,
           query: next.query,
+          domain: next.domain,
+          timeHorizon: next.timeHorizon,
           predictionId: next.predictionId,
           status: next.status,
           events: next.events,

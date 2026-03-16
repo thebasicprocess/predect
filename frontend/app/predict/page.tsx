@@ -55,6 +55,8 @@ function PredictPageInner() {
     setStatus,
     reset,
     setQuery: setStoreQuery,
+    setDomain: setStoreDomain,
+    setTimeHorizon: setStoreTimeHorizon,
     addSession,
     restoreSession,
     removeSession,
@@ -69,15 +71,16 @@ function PredictPageInner() {
   const sessions = usePredictionStore((s) => s.sessions);
   const activeSessionId = usePredictionStore((s) => s.activeSessionId);
 
-  // Keep local query in sync with the store (for session switching)
+  // Keep local query/domain/timeHorizon in sync with the store (for session switching)
   useEffect(() => {
     const unsub = usePredictionStore.subscribe((state) => {
-      // When active session changes, sync the local query state
       const activeSession = state.sessions.find(
         (s) => s.sessionId === state.activeSessionId
       );
       if (activeSession) {
         setQueryLocal(activeSession.query);
+        if (activeSession.domain) setDomain(activeSession.domain);
+        if (activeSession.timeHorizon) setTimeHorizon(activeSession.timeHorizon);
       }
     });
     return unsub;
@@ -92,6 +95,22 @@ function PredictPageInner() {
     [setStoreQuery]
   );
 
+  const handleSetDomain = useCallback(
+    (d: string) => {
+      setDomain(d);
+      setStoreDomain(d);
+    },
+    [setStoreDomain]
+  );
+
+  const handleSetTimeHorizon = useCallback(
+    (h: string) => {
+      setTimeHorizon(h);
+      setStoreTimeHorizon(h);
+    },
+    [setStoreTimeHorizon]
+  );
+
   // Load a shared/history prediction when ?view=<id> is in the URL
   useEffect(() => {
     if (!viewId) return;
@@ -102,12 +121,16 @@ function PredictPageInner() {
       .then((data) => {
         if (data?.result) {
           if (data.query) handleSetQuery(data.query);
+          if (data.domain) handleSetDomain(data.domain);
+          if (data.time_horizon) handleSetTimeHorizon(data.time_horizon);
           setResult(data.result);
           restoreFullData({
             result: data.result,
             agents: data.agents || [],
             roundEvents: data.rounds || [],
             evidence: data.evidence || [],
+            domain: data.domain,
+            timeHorizon: data.time_horizon,
           });
           setStatus("complete");
           setActiveTab("pipeline");
@@ -235,6 +258,9 @@ function PredictPageInner() {
   const handleRestoreSession = useCallback(
     (sessionId: string) => {
       restoreSession(sessionId);
+      const restored = usePredictionStore.getState().sessions.find((s) => s.sessionId === sessionId);
+      if (restored?.domain) setDomain(restored.domain);
+      if (restored?.timeHorizon) setTimeHorizon(restored.timeHorizon);
       setActiveTab("configure");
     },
     [restoreSession]
@@ -500,9 +526,9 @@ function PredictPageInner() {
                 query={query}
                 setQuery={handleSetQuery}
                 domain={domain}
-                setDomain={setDomain}
+                setDomain={handleSetDomain}
                 timeHorizon={timeHorizon}
-                setTimeHorizon={setTimeHorizon}
+                setTimeHorizon={handleSetTimeHorizon}
                 onSubmit={handleSubmit}
                 loading={status === "running"}
               />
