@@ -119,6 +119,19 @@ async def generate_report(
     ) if evidence_items else 0.5
     evidence_quality = "high" if avg_cred >= 0.75 else "medium" if avg_cred >= 0.55 else "low"
 
+    # Compute evidence sentiment divergence (bullish vs bearish split)
+    sentiments = [e.sentiment for e in evidence_items[:20] if e.sentiment is not None]
+    bullish_count = sum(1 for s in sentiments if s > 0.15)
+    bearish_count = sum(1 for s in sentiments if s < -0.15)
+    neutral_count = len(sentiments) - bullish_count - bearish_count
+    sentiment_divergence = ""
+    if sentiments:
+        avg_sentiment = round(sum(sentiments) / len(sentiments), 3)
+        sentiment_divergence = (
+            f"Evidence sentiment split: {bullish_count} bullish / {bearish_count} bearish / {neutral_count} neutral "
+            f"(avg: {avg_sentiment:+.2f})"
+        )
+
     result, tokens1 = await llm_call_json_with_usage(
         "prediction_synthesis",
         system_prompt="""You are a world-class analyst synthesizing evidence and simulation data into a structured prediction report.
@@ -132,6 +145,7 @@ Output valid JSON only.""",
 Domain: {domain}
 Time Horizon: {time_horizon}
 Evidence quality: {evidence_quality} (avg credibility: {avg_cred}, {len(evidence_items)} sources)
+{sentiment_divergence}
 Agent consensus level: {round(agent_consensus * 100)}% (higher = more agreement)
 Simulation depth: {total_rounds} rounds, {total_unique_claims} unique claims, {high_freq_claims} high-frequency claims (3+ agents)
 Agent conviction trend: {conviction_trend} (avg change per round: {avg_conviction_change:+.3f})

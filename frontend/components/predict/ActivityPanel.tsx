@@ -372,6 +372,14 @@ export function ActivityPanel() {
                       </div>
                     )}
 
+                    {/* Key disagreement banner */}
+                    {ev.key_disagreement && (
+                      <div className="ml-5 flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-warning/6 border border-warning/15">
+                        <span className="text-[8px] font-mono text-warning/70 flex-shrink-0 mt-0.5 uppercase tracking-wide">Dispute</span>
+                        <p className="text-[10px] text-warning/90 leading-snug">{ev.key_disagreement}</p>
+                      </div>
+                    )}
+
                     {/* Summary */}
                     <div className="ml-5 p-2 rounded-lg bg-white/3 border border-border">
                       <p className="text-[10px] text-text-muted leading-relaxed">{ev.interaction_summary}</p>

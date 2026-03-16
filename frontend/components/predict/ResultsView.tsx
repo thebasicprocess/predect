@@ -147,7 +147,13 @@ export function ResultsView() {
     for (const c of allClaims) claimFreqs.set(c, (claimFreqs.get(c) ?? 0) + 1);
     const highFreqClaims = Array.from(claimFreqs.values()).filter(v => v >= 3).length;
 
-    return { avgCred, evidenceQuality, convictionTrend, avgConvChange, totalRounds, highFreqClaims };
+    // Evidence sentiment divergence
+    const sentiments = evidence.filter(e => e.sentiment != null).map(e => e.sentiment as number);
+    const bullish = sentiments.filter(s => s > 0.15).length;
+    const bearish = sentiments.filter(s => s < -0.15).length;
+    const avgSentiment = sentiments.length > 0 ? sentiments.reduce((s, v) => s + v, 0) / sentiments.length : null;
+
+    return { avgCred, evidenceQuality, convictionTrend, avgConvChange, totalRounds, highFreqClaims, bullish, bearish, avgSentiment, sentimentCount: sentiments.length };
   }, [evidence, roundEvents]);
 
   // Agent-centric view: group round events by agent
@@ -496,6 +502,19 @@ export function ResultsView() {
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-text-muted">Consensus claims</span>
                       <span className="text-[11px] font-mono text-accent">{confidenceBreakdown.highFreqClaims} high-freq · {confidenceBreakdown.totalRounds} rounds</span>
+                    </div>
+                  )}
+                  {confidenceBreakdown.sentimentCount > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-text-muted">Evidence sentiment</span>
+                      <span className="text-[11px] font-mono">
+                        <span style={{ color: "#10B981" }}>{confidenceBreakdown.bullish}↑</span>
+                        {" / "}
+                        <span style={{ color: "#EF4444" }}>{confidenceBreakdown.bearish}↓</span>
+                        {confidenceBreakdown.avgSentiment !== null && (
+                          <span className="text-text-muted ml-1">avg {confidenceBreakdown.avgSentiment > 0 ? "+" : ""}{confidenceBreakdown.avgSentiment.toFixed(2)}</span>
+                        )}
+                      </span>
                     </div>
                   )}
                 </div>
