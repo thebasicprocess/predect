@@ -30,12 +30,43 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
     conn = get_connection()
 
     try:
+        # Step 0: Query refinement — make vague questions specific and falsifiable
+        working_query = request.query
+        try:
+            refine_result, _ = await llm_call_json_with_usage(
+                "quick_query",
+                system_prompt="You are a prediction analyst. Reframe vague questions into specific, falsifiable predictions. Preserve the original intent.",
+                user_prompt=f"""Query: {request.query}
+Domain: {request.domain}
+Time Horizon: {request.time_horizon}
+
+Reframe this as a specific, measurable prediction if it's vague. If it's already specific, return it unchanged.
+Do NOT change the substance — only add specificity (e.g., add a threshold, metric, entity name, or percentage).
+
+Return JSON: {{"refined_query": "...", "was_refined": true/false}}""",
+            )
+            refined = refine_result.get("refined_query", "").strip()
+            was_refined = refine_result.get("was_refined", False)
+            if refined and was_refined and len(refined) > 20:
+                working_query = refined
+                await emit({
+                    "phase": "evidence",
+                    "step": 1,
+                    "totalSteps": 6,
+                    "message": f"Query refined: {refined[:120]}",
+                    "model": "glm-4.5-air",
+                    "task": "quick_query",
+                    "data": {"refined_query": refined, "original_query": request.query},
+                })
+        except Exception:
+            pass  # refinement is optional — use original query on failure
+
         await emit({"phase": "evidence", "step": 1, "totalSteps": 6, "message": "Collecting evidence...", "model": "glm-4.5", "task": "evidence_summarization"})
 
         evidence_items = []
         if request.collect_evidence:
             evidence_items = await collect_evidence(
-                request.query,
+                working_query,
                 max_items=20,
                 news_api_key=request.news_api_key or None,
                 gnews_api_key=request.gnews_api_key or None,
@@ -76,7 +107,7 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
 
         await emit({"phase": "graph", "step": 2, "totalSteps": 6, "message": "Building knowledge graph...", "model": "glm-4.5", "task": "graph_construction"})
 
-        pred_node = get_or_create_node("Prediction", request.query[:100])
+        pred_node = get_or_create_node("Prediction", working_query[:100])
         register_node_for_prediction(prediction_id, pred_node.id)
 
         # Collect raw entities from evidence
@@ -94,7 +125,7 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
                 graph_result, _ = await llm_call_json_with_usage(
                     "graph_construction",
                     system_prompt="You are a knowledge graph builder. Classify entities into typed nodes and identify relationships. Output valid JSON only.",
-                    user_prompt=f"""Query: {request.query}
+                    user_prompt=f"""Query: {working_query}
 Entities found in evidence: {', '.join(entity_list)}
 
 Classify each entity and identify relationships between them.
@@ -159,7 +190,7 @@ Types: Person (named individual), Organization (company/gov/group), Event (incid
             )
 
         agents, rounds = await run_full_simulation(
-            topic=request.query,
+            topic=working_query,
             evidence_items=evidence_items,
             agent_count=request.agent_count or 8,
             rounds=request.rounds or 5,
@@ -176,7 +207,7 @@ Types: Person (named individual), Organization (company/gov/group), Event (incid
         await emit({"phase": "analysis", "step": 5, "totalSteps": 6, "message": "Synthesizing prediction...", "model": "glm-4.7", "task": "prediction_synthesis"})
 
         report, synthesis_tokens = await generate_report(
-            query=request.query,
+            query=working_query,
             domain=request.domain or "general",
             time_horizon=request.time_horizon or "6 months",
             evidence_items=evidence_items,

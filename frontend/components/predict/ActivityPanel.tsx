@@ -50,8 +50,24 @@ export function ActivityPanel() {
   // Aggregate total tokens across all model events
   const totalTokens = modelEvents.reduce((sum, e) => sum + (e.tokens ?? 0), 0);
 
+  // Extract refined query from events if query was sharpened
+  const refinedQuery = events
+    .map((e) => e.data?.refined_query as string | undefined)
+    .find((q) => q && q.length > 0);
+
   return (
     <div className="space-y-4">
+      {/* Refined query banner */}
+      {refinedQuery && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="px-3 py-2 rounded-xl border border-accent/20 bg-accent/5"
+        >
+          <p className="text-[9px] font-mono text-accent/70 uppercase tracking-wide mb-1">Query sharpened</p>
+          <p className="text-[11px] text-text-secondary leading-snug">{refinedQuery}</p>
+        </motion.div>
+      )}
       {/* Live model activity */}
       <Card>
         <CardHeader>
