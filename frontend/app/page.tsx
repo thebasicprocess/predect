@@ -25,8 +25,8 @@ const features = [
     icon: FileSearch,
     title: "Evidence Collection",
     description:
-      "Autonomously scans Google News, Wikipedia, Hacker News, Reddit, and ArXiv. Zero API keys required.",
-    badge: "Keyless",
+      "Autonomously scans Google News, Wikipedia, Hacker News, Reddit, and ArXiv. Add optional keys for NewsAPI, GNews, and Alpha Vantage financial news.",
+    badge: "7 Sources",
     color: "#10B981",
     glow: "rgba(16, 185, 129, 0.15)",
   },
@@ -62,7 +62,7 @@ const features = [
 const stats = [
   { label: "AI Models", value: "4", icon: Cpu, suffix: "" },
   { label: "Agents per Prediction", value: "8+", icon: Activity, suffix: "" },
-  { label: "Evidence Sources", value: "5", icon: Database, suffix: "" },
+  { label: "Evidence Sources", value: "7", icon: Database, suffix: "" },
   { label: "Streaming Pipeline", value: "SSE", icon: Radio, suffix: "" },
 ];
 
