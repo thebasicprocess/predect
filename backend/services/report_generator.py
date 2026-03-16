@@ -64,7 +64,15 @@ async def generate_report(
         for item in evidence_items[:20]
     ])
 
-    claims_summary = "\n".join([f"- {c}" for c in set(all_claims[:20])])
+    # Sort claims by frequency — recurring claims carry more weight
+    claim_freq: dict[str, int] = {}
+    for c in all_claims:
+        claim_freq[c] = claim_freq.get(c, 0) + 1
+    sorted_claims = sorted(claim_freq.keys(), key=lambda c: claim_freq[c], reverse=True)
+    claims_summary = "\n".join([
+        f"- [{claim_freq[c]}x] {c}" if claim_freq[c] > 1 else f"- {c}"
+        for c in sorted_claims[:20]
+    ])
     beliefs_summary = "\n".join([f"- {b}" for b in set(all_beliefs[:20])])
 
     # Consensus = 1 - uniqueness. If all claims repeat (agents agree), consensus is high.

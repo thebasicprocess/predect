@@ -206,4 +206,16 @@ async def run_full_simulation(
                 if claim not in accumulated_claims:
                     accumulated_claims.append(claim)
 
+    # Emit final agent state so frontend has updated beliefs from all simulation rounds
+    if on_event:
+        await on_event({
+            "phase": "agents_final",
+            "step": 4,
+            "totalSteps": 6,
+            "message": f"Simulation complete — agents updated",
+            "model": "glm-4.5-air",
+            "task": "simulation_round",
+            "data": {"agents": [a.model_dump() for a in agents]},
+        })
+
     return agents, all_rounds
