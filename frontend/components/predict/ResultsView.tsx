@@ -562,7 +562,7 @@ export function ResultsView() {
                         className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5"
                         style={{ background: `${color}20`, color }}
                       >
-                        {item.source.replace("_", " ").toUpperCase()}
+                        {item.source.replace(/_/g, " ").toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-text-primary line-clamp-2 leading-snug">{item.title}</p>

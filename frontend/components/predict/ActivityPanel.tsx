@@ -137,7 +137,7 @@ export function ActivityPanel() {
                       color: sourceColors[item.source] || "#635BFF",
                     }}
                   >
-                    {item.source.toUpperCase()}
+                    {item.source.replace(/_/g, " ").toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-text-secondary line-clamp-1 leading-tight">{item.title}</p>
