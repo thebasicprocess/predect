@@ -2,13 +2,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getPredictionHistory, deletePrediction } from "@/lib/api";
 import { getConfidenceColor, formatConfidence } from "@/lib/utils";
-import { History, Clock, BrainCircuit, BarChart2, CheckCircle2, Target, Trash2 } from "lucide-react";
+import { History, Clock, BrainCircuit, BarChart2, CheckCircle2, Target, Trash2, Search, X } from "lucide-react";
 import Link from "next/link";
 
 interface HistoryItem {
@@ -465,6 +465,7 @@ export default function HistoryPage() {
     refetchInterval: 10_000,
   });
 
+  const [searchQuery, setSearchQuery] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteMutation = useMutation({
     mutationFn: deletePrediction,
@@ -481,7 +482,18 @@ export default function HistoryPage() {
     deleteMutation.mutate(id);
   };
 
-  const grouped = predictions.reduce(
+  const filteredPredictions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return predictions;
+    return predictions.filter(
+      (p) =>
+        p.query.toLowerCase().includes(q) ||
+        (p.headline?.toLowerCase().includes(q)) ||
+        (p.domain?.toLowerCase().includes(q))
+    );
+  }, [predictions, searchQuery]);
+
+  const grouped = filteredPredictions.reduce(
     (acc: Record<string, HistoryItem[]>, p: HistoryItem) => {
       const rawDate =
         p.created_at?.split("T")[0] ?? p.created_at?.split(" ")[0] ?? "Unknown";
@@ -513,18 +525,42 @@ export default function HistoryPage() {
             <p className="text-sm text-text-secondary">
               {isLoading
                 ? "Loading..."
+                : searchQuery
+                ? `${filteredPredictions.length} of ${predictions.length} prediction${predictions.length !== 1 ? "s" : ""}`
                 : `${predictions.length} total prediction${predictions.length !== 1 ? "s" : ""}`}
             </p>
           </div>
         </div>
 
-        {/* Summary bar — only when we have data */}
+        {/* Search */}
         {!isLoading && predictions.length > 0 && (
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search predictions…"
+              className="w-full pl-9 pr-8 py-2 rounded-lg border border-border bg-white/2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Summary bar — only when we have data */}
+        {!isLoading && predictions.length > 0 && !searchQuery && (
           <SummaryBar predictions={predictions} />
         )}
 
-        {/* Activity heatmap — only shown when predictions span multiple days */}
-        {!isLoading && predictions.length > 0 && (
+        {/* Activity heatmap — only shown when predictions span multiple days and not searching */}
+        {!isLoading && predictions.length > 0 && !searchQuery && (
           <PredictionHeatmap predictions={predictions} />
         )}
 
@@ -566,6 +602,17 @@ export default function HistoryPage() {
               <BrainCircuit className="w-4 h-4" />
               Run First Prediction
             </Link>
+          </div>
+        )}
+
+        {/* No search results */}
+        {!isLoading && predictions.length > 0 && searchQuery && filteredPredictions.length === 0 && (
+          <div className="text-center py-16">
+            <Search className="w-8 h-8 text-text-muted/30 mx-auto mb-3" />
+            <p className="text-sm text-text-muted">No predictions match &ldquo;{searchQuery}&rdquo;</p>
+            <button onClick={() => setSearchQuery("")} className="mt-2 text-xs text-accent hover:text-accent-hover transition-colors">
+              Clear search
+            </button>
           </div>
         )}
 
