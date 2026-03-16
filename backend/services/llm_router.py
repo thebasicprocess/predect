@@ -8,17 +8,17 @@ ZAI_API_KEY = os.getenv("ZAI_API_KEY", "")
 ZAI_BASE_URL = os.getenv("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4/")
 
 TASK_MODEL_MAP = {
-    "persona_generation": "glm-4-flash",
-    "simulation_round": "glm-4-flash",
-    "quick_query": "glm-4-flash",
-    "entity_extraction": "glm-4-air",
-    "graph_construction": "glm-4-air",
-    "evidence_summarization": "glm-4-air",
-    "prediction_synthesis": "glm-4",
-    "financial_analysis": "glm-4",
-    "confidence_scoring": "glm-4",
-    "public_opinion_analysis": "glm-4-plus",
-    "creative_prediction": "glm-4-plus",
+    "persona_generation": "glm-4.5-air",
+    "simulation_round": "glm-4.5-air",
+    "quick_query": "glm-4.5-air",
+    "entity_extraction": "glm-4.5",
+    "graph_construction": "glm-4.5",
+    "evidence_summarization": "glm-4.5",
+    "prediction_synthesis": "glm-4.7",
+    "financial_analysis": "glm-4.7",
+    "confidence_scoring": "glm-4.7",
+    "public_opinion_analysis": "glm-5",
+    "creative_prediction": "glm-5",
 }
 
 TASK_TIER = {
@@ -44,7 +44,7 @@ def get_client() -> AsyncOpenAI:
 
 
 def get_model_for_task(task: str) -> str:
-    return TASK_MODEL_MAP.get(task, "glm-4-air")
+    return TASK_MODEL_MAP.get(task, "glm-4.5-air")
 
 
 def get_tier_for_task(task: str) -> str:

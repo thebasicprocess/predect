@@ -1,8 +1,9 @@
 import json
 import uuid
 import asyncio
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
+from sse_starlette.sse import EventSourceResponse
 from backend.models.prediction import PredictRequest, PredictionRecord
 from backend.db.database import get_connection
 from backend.services.evidence_collector import collect_evidence
@@ -25,7 +26,7 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
     conn = get_connection()
 
     try:
-        await emit({"phase": "evidence", "step": 1, "totalSteps": 6, "message": "Collecting evidence...", "model": "glm-4-air", "task": "evidence_summarization"})
+        await emit({"phase": "evidence", "step": 1, "totalSteps": 6, "message": "Collecting evidence...", "model": "glm-4.5", "task": "evidence_summarization"})
 
         evidence_items = []
         if request.collect_evidence:
@@ -127,39 +128,39 @@ async def run_prediction(request: PredictRequest):
 
 
 @router.get("/{prediction_id}/stream")
-async def stream_prediction(prediction_id: str):
+async def stream_prediction(request: Request, prediction_id: str):
     if prediction_id not in _sse_queues:
         conn = get_connection()
         row = conn.execute("SELECT * FROM predictions WHERE id = ?", (prediction_id,)).fetchone()
         conn.close()
         if row and row["status"] == "complete":
             async def done_gen():
-                yield "data: [DONE]\n\n"
-            return StreamingResponse(done_gen(), media_type="text/event-stream")
+                yield {"data": "[DONE]"}
+            return EventSourceResponse(done_gen())
 
     queue = _sse_queues.get(prediction_id)
 
     async def event_generator():
         if not queue:
-            yield "data: [DONE]\n\n"
+            yield {"data": "[DONE]"}
             return
 
         while True:
-            msg = await queue.get()
-            if msg == "[DONE]":
-                yield "data: [DONE]\n\n"
+            if await request.is_disconnected():
                 _sse_queues.pop(prediction_id, None)
                 break
-            yield f"data: {msg}\n\n"
+            try:
+                msg = await asyncio.wait_for(queue.get(), timeout=30)
+            except asyncio.TimeoutError:
+                yield {"data": "ping"}
+                continue
+            if msg == "[DONE]":
+                yield {"data": "[DONE]"}
+                _sse_queues.pop(prediction_id, None)
+                break
+            yield {"data": msg}
 
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    return EventSourceResponse(event_generator())
 
 
 @router.get("/history")
