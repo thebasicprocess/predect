@@ -47,9 +47,20 @@ async def generate_personas(
 
     domain_hint = DOMAIN_PERSONA_HINTS.get(domain, DOMAIN_PERSONA_HINTS["general"])
 
+    # Derive required archetypes from count (always include contrarian + enthusiast pair)
+    half = max(1, count // 2)
+    archetype_hint = (
+        f"REQUIRED diversity — your {count} agents MUST include:\n"
+        f"- At least 1 strong contrarian/skeptic who argues AGAINST the mainstream view\n"
+        f"- At least 1 committed enthusiast/bull who argues FOR the primary outcome\n"
+        f"- At least 1 domain expert or insider with specific technical knowledge\n"
+        f"- At least 1 international/outsider perspective\n"
+        f"- Remaining {max(0, count - 4)} agents: diverse stakeholders, affected parties, or analysts"
+    )
+
     result, tokens = await llm_call_json_with_usage(
         "persona_generation",
-        system_prompt="You are a simulation designer creating diverse agent personas for a prediction simulation. Ground agent beliefs in the provided evidence.",
+        system_prompt="You are a simulation designer creating adversarial agent personas for a prediction debate. Diversity of opinion is critical — avoid groupthink. Ground beliefs in provided evidence.",
         user_prompt=f"""Topic: {topic}
 Key entities from evidence: {entity_str}
 
@@ -58,11 +69,13 @@ Recent evidence headlines:
 
 Domain context: {domain_hint}
 
-Generate {count} diverse agent personas. Each should represent a different perspective, background, or stakeholder type related to the topic. Ground their beliefs in the evidence provided.
+{archetype_hint}
 
-Return JSON: {{"agents": [{{"id": "agent_1", "name": "string", "role": "string", "beliefs": ["specific belief grounded in evidence1", "belief2", "belief3"], "behavioral_bias": "string"}}]}}
+Generate {count} agent personas with meaningfully different viewpoints that will generate productive debate.
 
-Make agents diverse: experts, skeptics, optimists, domain insiders, public voices, international perspectives. Each agent should have 3 specific beliefs referencing real aspects of the topic."""
+Return JSON: {{"agents": [{{"id": "agent_1", "name": "string", "role": "string", "beliefs": ["specific belief grounded in evidence1", "belief2", "belief3"], "behavioral_bias": "optimistic|pessimistic|contrarian|cautious|data-driven|ideological|pragmatic"}}]}}
+
+Each agent needs 3 beliefs that directly reference evidence above. Contrarian agents should hold genuinely opposing views, not strawmen."""
     )
 
     agents = []
