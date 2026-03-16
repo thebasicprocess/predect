@@ -1,7 +1,8 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, useCallback } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -175,6 +176,286 @@ function SummaryBar({
   );
 }
 
+// ─── Heatmap ────────────────────────────────────────────────────────────────
+
+const WEEKS = 12;
+const DAYS = WEEKS * 7; // 84
+
+/** YYYY-MM-DD string for a Date */
+function toDateKey(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/** Returns midnight-local Date for a YYYY-MM-DD string */
+function fromDateKey(key: string): Date {
+  return new Date(key + "T00:00:00");
+}
+
+/** Color for a given count */
+function cellColor(count: number): string {
+  if (count === 0) return "rgba(255,255,255,0.04)";
+  if (count === 1) return "#635BFF40";
+  if (count === 2) return "#635BFF80";
+  return "#635BFF";
+}
+
+interface TooltipState {
+  x: number;
+  y: number;
+  date: string;
+  count: number;
+}
+
+function PredictionHeatmap({ predictions }: { predictions: HistoryItem[] }) {
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Build count map keyed by YYYY-MM-DD
+  const countMap = new Map<string, number>();
+  for (const p of predictions) {
+    const key = p.created_at?.split("T")[0] ?? p.created_at?.split(" ")[0];
+    if (key) countMap.set(key, (countMap.get(key) ?? 0) + 1);
+  }
+
+  // Build the 84-day grid ending today
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Align end of grid to the end of the current week (Saturday)
+  // so columns are always Mon-Sun
+  const endDate = new Date(today);
+  // dayOfWeek: 0=Sun … 6=Sat; we want to end on the last day of this week
+  const dayOfWeek = today.getDay(); // 0-6
+  // Days until Saturday (6)
+  const daysUntilSat = (6 - dayOfWeek + 7) % 7;
+  endDate.setDate(endDate.getDate() + daysUntilSat);
+
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - (DAYS - 1));
+
+  // cells[col][row] — col=0 is oldest week, row=0 is Monday (adjusted)
+  const cells: { date: string; count: number }[][] = [];
+  for (let col = 0; col < WEEKS; col++) {
+    cells[col] = [];
+    for (let row = 0; row < 7; row++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + col * 7 + row);
+      const key = toDateKey(d);
+      cells[col][row] = { date: key, count: countMap.get(key) ?? 0 };
+    }
+  }
+
+  // Month labels: find columns where the month changes (or is the first col)
+  const monthLabels: { col: number; label: string }[] = [];
+  let lastMonth = -1;
+  for (let col = 0; col < WEEKS; col++) {
+    const d = fromDateKey(cells[col][0].date);
+    const m = d.getMonth();
+    if (m !== lastMonth) {
+      monthLabels.push({
+        col,
+        label: d.toLocaleString("en-US", { month: "short" }),
+      });
+      lastMonth = m;
+    }
+  }
+
+  const CELL = 13; // px cell size
+  const GAP = 3;   // px gap
+  const LABEL_W = 20; // px left label width
+  const MONTH_H = 18; // px month label row height
+
+  const totalW = WEEKS * (CELL + GAP) - GAP;
+  const totalH = 7 * (CELL + GAP) - GAP;
+
+  const handleMouseEnter = useCallback(
+    (e: React.MouseEvent<SVGRectElement>, date: string, count: number) => {
+      const rect = (e.target as SVGRectElement).getBoundingClientRect();
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      if (!containerRect) return;
+      setTooltip({
+        x: rect.left - containerRect.left + CELL / 2,
+        y: rect.top - containerRect.top,
+        date,
+        count,
+      });
+    },
+    []
+  );
+
+  const handleMouseLeave = useCallback(() => setTooltip(null), []);
+
+  // Only show if predictions span at least 2 different days
+  const uniqueDays = new Set(
+    predictions
+      .map((p) => p.created_at?.split("T")[0] ?? p.created_at?.split(" ")[0])
+      .filter(Boolean)
+  );
+  if (uniqueDays.size < 2) return null;
+
+  return (
+    <motion.div
+      className="glass rounded-xl p-5 mb-8 overflow-hidden"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.18 }}
+    >
+      <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">
+        Activity — last 12 weeks
+      </p>
+
+      <div className="relative" ref={containerRef}>
+        <svg
+          width={LABEL_W + GAP + totalW}
+          height={MONTH_H + totalH}
+          style={{ display: "block", overflow: "visible" }}
+          aria-label="Prediction activity heatmap"
+          role="img"
+        >
+          {/* Month labels */}
+          {monthLabels.map(({ col, label }) => (
+            <text
+              key={`month-${col}`}
+              x={LABEL_W + GAP + col * (CELL + GAP)}
+              y={MONTH_H - 5}
+              fontSize={10}
+              fill="rgba(248,248,252,0.35)"
+              fontFamily="Inter, system-ui, sans-serif"
+            >
+              {label}
+            </text>
+          ))}
+
+          {/* Weekday labels (M W F) */}
+          {[
+            { row: 0, label: "M" },
+            { row: 2, label: "W" },
+            { row: 4, label: "F" },
+          ].map(({ row, label }) => (
+            <text
+              key={`wd-${row}`}
+              x={0}
+              y={MONTH_H + row * (CELL + GAP) + CELL - 2}
+              fontSize={9}
+              fill="rgba(248,248,252,0.28)"
+              fontFamily="Inter, system-ui, sans-serif"
+            >
+              {label}
+            </text>
+          ))}
+
+          {/* Cells */}
+          {cells.map((week, col) =>
+            week.map((cell, row) => {
+              const isFuture = cell.date > toDateKey(today);
+              const color = isFuture
+                ? "rgba(255,255,255,0.02)"
+                : cellColor(cell.count);
+              const x = LABEL_W + GAP + col * (CELL + GAP);
+              const y = MONTH_H + row * (CELL + GAP);
+              const delay = (col * 7 + row) * 0.005;
+
+              return (
+                <motion.rect
+                  key={cell.date}
+                  x={x}
+                  y={y}
+                  width={CELL}
+                  height={CELL}
+                  rx={2}
+                  ry={2}
+                  fill={color}
+                  initial={{ opacity: 0, scale: 0.4 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{
+                    delay,
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 25,
+                  }}
+                  style={{
+                    cursor: isFuture ? "default" : "pointer",
+                    transformOrigin: `${x + CELL / 2}px ${y + CELL / 2}px`,
+                    filter:
+                      !isFuture && cell.count >= 3
+                        ? "drop-shadow(0 0 4px rgba(99,91,255,0.6))"
+                        : "none",
+                  }}
+                  onMouseEnter={
+                    isFuture
+                      ? undefined
+                      : (e) =>
+                          handleMouseEnter(
+                            e as unknown as React.MouseEvent<SVGRectElement>,
+                            cell.date,
+                            cell.count
+                          )
+                  }
+                  onMouseLeave={isFuture ? undefined : handleMouseLeave}
+                />
+              );
+            })
+          )}
+        </svg>
+
+        {/* Tooltip */}
+        <AnimatePresence>
+          {tooltip && (
+            <motion.div
+              key="heatmap-tooltip"
+              className="absolute z-50 pointer-events-none"
+              style={{
+                left: tooltip.x,
+                top: tooltip.y - 8,
+                transform: "translate(-50%, -100%)",
+              }}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.12 }}
+            >
+              <div className="bg-[#1a1a2e] border border-white/10 rounded-lg px-2.5 py-1.5 shadow-xl shadow-black/40 whitespace-nowrap">
+                <p className="text-[11px] font-mono text-text-secondary">
+                  {fromDateKey(tooltip.date).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+                <p className="text-[11px] font-semibold text-text-primary">
+                  {tooltip.count === 0
+                    ? "No predictions"
+                    : `${tooltip.count} prediction${tooltip.count !== 1 ? "s" : ""}`}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Legend */}
+        <div className="flex items-center gap-1.5 mt-3 justify-end">
+          <span className="text-[10px] text-text-muted">Less</span>
+          {[0, 1, 2, 3].map((level) => (
+            <div
+              key={level}
+              className="rounded-sm"
+              style={{
+                width: CELL,
+                height: CELL,
+                backgroundColor: cellColor(level),
+                border: "1px solid rgba(255,255,255,0.06)",
+              }}
+            />
+          ))}
+          <span className="text-[10px] text-text-muted">More</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
+
 export default function HistoryPage() {
   const router = useRouter();
   const { data: predictions = [], isLoading } = useQuery<HistoryItem[]>({
@@ -223,6 +504,11 @@ export default function HistoryPage() {
         {/* Summary bar — only when we have data */}
         {!isLoading && predictions.length > 0 && (
           <SummaryBar predictions={predictions} />
+        )}
+
+        {/* Activity heatmap — only shown when predictions span multiple days */}
+        {!isLoading && predictions.length > 0 && (
+          <PredictionHeatmap predictions={predictions} />
         )}
 
         {/* Loading skeletons */}

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { useSearchParams, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   GraphCanvas,
@@ -12,7 +12,7 @@ import {
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getGraphNodes, getGraphEdges, getGraphStats } from "@/lib/api";
-import { Network, BarChart3, Plus, Minus, Maximize2 } from "lucide-react";
+import { Network, BarChart3, Plus, Minus, Maximize2, ArrowRight } from "lucide-react";
 
 const NODE_COLORS: Record<string, string> = {
   Person: "#635BFF",
@@ -23,11 +23,22 @@ const NODE_COLORS: Record<string, string> = {
   Prediction: "#EC4899",
 };
 
+const NODE_TYPES = Object.keys(NODE_COLORS) as Array<keyof typeof NODE_COLORS>;
+
+interface GraphStats {
+  node_count: number;
+  edge_count: number;
+  node_types?: Record<string, number>;
+}
+
 function GraphPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const predictionId = searchParams.get("prediction_id") ?? undefined;
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  // Set of node types that are currently hidden (toggled off)
+  const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
 
   const graphRef = useRef<GraphCanvasHandle>(null);
 
@@ -39,7 +50,7 @@ function GraphPageInner() {
     queryKey: ["graph-edges", predictionId],
     queryFn: () => getGraphEdges(1000, predictionId),
   });
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<GraphStats>({
     queryKey: ["graph-stats"],
     queryFn: () => getGraphStats(),
   });
@@ -58,6 +69,36 @@ function GraphPageInner() {
     setSelected(n);
   };
 
+  const toggleType = (type: string) => {
+    setHiddenTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
+
+  // Edges connected to the selected node (up to 3)
+  const connectedEdges: Array<{ edge: GraphEdge; connectedNode: GraphNode }> =
+    selected
+      ? edges
+          .filter(
+            (e) =>
+              e.source_id === selected.id || e.target_id === selected.id
+          )
+          .slice(0, 3)
+          .map((e) => {
+            const connectedId =
+              e.source_id === selected.id ? e.target_id : e.source_id;
+            const connectedNode = nodes.find((n) => n.id === connectedId);
+            return connectedNode ? { edge: e, connectedNode } : null;
+          })
+          .filter((item): item is { edge: GraphEdge; connectedNode: GraphNode } => item !== null)
+      : [];
+
   return (
     <div className="flex flex-col md:flex-row md:h-[calc(100vh-56px)] md:overflow-hidden">
       {/* Graph canvas */}
@@ -68,6 +109,7 @@ function GraphPageInner() {
           edges={edges}
           onNodeSelect={handleNodeSelect}
           highlightNodes={highlightNodes}
+          hiddenTypes={hiddenTypes}
         />
 
         {/* Top-left badges */}
@@ -147,6 +189,46 @@ function GraphPageInner() {
           )}
         </div>
 
+        {/* Node type filter pills */}
+        <div>
+          <p className="text-xs text-text-muted mb-2 font-medium uppercase tracking-wide">
+            Filter by type
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {NODE_TYPES.map((type) => {
+              const isActive = !hiddenTypes.has(type);
+              const color = NODE_COLORS[type];
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleType(type)}
+                  aria-pressed={isActive}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-150 border"
+                  style={
+                    isActive
+                      ? {
+                          background: `${color}22`,
+                          borderColor: `${color}66`,
+                          color,
+                        }
+                      : {
+                          background: "transparent",
+                          borderColor: "rgba(255,255,255,0.08)",
+                          color: "rgba(255,255,255,0.3)",
+                        }
+                  }
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ background: isActive ? color : "rgba(255,255,255,0.2)" }}
+                  />
+                  {type}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Legend */}
         <Card>
           <CardHeader>
@@ -195,65 +277,142 @@ function GraphPageInner() {
         )}
 
         {/* Selected node */}
-        {selected && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card glow>
-              <CardHeader>
-                <CardTitle>Selected Node</CardTitle>
-              </CardHeader>
-              <div className="space-y-2">
-                <div>
-                  <div className="text-xs text-text-muted mb-0.5">Name</div>
-                  <div className="text-sm font-medium">{selected.name}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-text-muted mb-0.5">Type</div>
-                  <Badge variant="accent">{selected.type}</Badge>
-                </div>
-                <div>
-                  <div className="text-xs text-text-muted mb-0.5">ID</div>
-                  <div className="text-xs font-mono text-text-muted">
-                    {selected.id.slice(0, 16)}...
-                  </div>
-                </div>
-                {Object.keys(selected.properties).length > 0 && (
+        <AnimatePresence mode="wait">
+          {selected && (
+            <motion.div
+              key={selected.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+            >
+              <Card glow>
+                <CardHeader>
+                  <CardTitle>Selected Node</CardTitle>
+                </CardHeader>
+                <div className="space-y-2">
                   <div>
-                    <div className="text-xs text-text-muted mb-1">
-                      Properties
-                    </div>
-                    <div className="space-y-1">
-                      {Object.entries(selected.properties)
-                        .slice(0, 4)
-                        .map(([k, v]) => (
-                          <div key={k} className="flex justify-between text-xs">
-                            <span className="text-text-muted capitalize">
-                              {k}
-                            </span>
-                            <span className="font-mono text-text-secondary truncate max-w-[120px]">
-                              {String(v)}
-                            </span>
-                          </div>
-                        ))}
+                    <div className="text-xs text-text-muted mb-0.5">Name</div>
+                    <div className="text-sm font-medium">{selected.name}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-text-muted mb-0.5">Type</div>
+                    <Badge variant="accent">{selected.type}</Badge>
+                  </div>
+                  <div>
+                    <div className="text-xs text-text-muted mb-0.5">ID</div>
+                    <div className="text-xs font-mono text-text-muted">
+                      {selected.id.slice(0, 16)}...
                     </div>
                   </div>
-                )}
-              </div>
-            </Card>
-          </motion.div>
-        )}
+                  {Object.keys(selected.properties).length > 0 && (
+                    <div>
+                      <div className="text-xs text-text-muted mb-1">
+                        Properties
+                      </div>
+                      <div className="space-y-1">
+                        {Object.entries(selected.properties)
+                          .slice(0, 4)
+                          .map(([k, v]) => (
+                            <div key={k} className="flex justify-between text-xs">
+                              <span className="text-text-muted capitalize">
+                                {k}
+                              </span>
+                              <span className="font-mono text-text-secondary truncate max-w-[120px]">
+                                {String(v)}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
 
+                  {/* Connections section */}
+                  {connectedEdges.length > 0 && (
+                    <div>
+                      <div className="text-xs text-text-muted mb-1.5">
+                        Connections
+                      </div>
+                      <div className="space-y-1.5">
+                        {connectedEdges.map(({ edge, connectedNode }) => (
+                          <button
+                            key={edge.id}
+                            onClick={() => handleNodeSelect(connectedNode)}
+                            className="w-full flex items-center gap-2 text-xs bg-white/4 hover:bg-white/8 rounded-lg px-2.5 py-1.5 transition-colors group text-left"
+                          >
+                            <span
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{
+                                background:
+                                  NODE_COLORS[connectedNode.type] ?? "#635BFF",
+                              }}
+                            />
+                            <span className="flex-1 min-w-0">
+                              <span className="block text-text-muted font-mono truncate">
+                                {edge.relationship.replace(/_/g, " ").toLowerCase()}
+                              </span>
+                              <span className="block text-text-secondary truncate">
+                                {connectedNode.name}
+                              </span>
+                            </span>
+                            <ArrowRight className="w-3 h-3 text-text-muted opacity-0 group-hover:opacity-100 flex-shrink-0 transition-opacity" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Empty state */}
         {!selected && nodes.length === 0 && (
-          <div className="text-center py-12">
-            <Network className="w-8 h-8 text-text-muted mx-auto mb-3" />
-            <p className="text-xs text-text-muted">
-              {predictionId
-                ? "No graph nodes for this prediction yet"
-                : "Run a prediction to build the knowledge graph"}
-            </p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-12 px-2"
+          >
+            <div className="w-12 h-12 rounded-2xl glass flex items-center justify-center mx-auto mb-4">
+              <Network className="w-6 h-6 text-text-muted" />
+            </div>
+            {predictionId ? (
+              <>
+                <p className="text-sm text-text-secondary font-medium mb-1">
+                  No graph data yet
+                </p>
+                <p className="text-xs text-text-muted mb-4 leading-relaxed">
+                  This prediction hasn&apos;t generated any knowledge graph
+                  nodes. Try re-running it with evidence collection enabled.
+                </p>
+                <button
+                  onClick={() => router.push("/predict")}
+                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-accent/15 hover:bg-accent/25 text-accent border border-accent/30 transition-colors"
+                >
+                  Run a prediction
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-text-secondary font-medium mb-1">
+                  Graph is empty
+                </p>
+                <p className="text-xs text-text-muted mb-4 leading-relaxed">
+                  Run a prediction to build the knowledge graph. Entities,
+                  events, and relationships will appear here automatically.
+                </p>
+                <button
+                  onClick={() => router.push("/predict")}
+                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-accent/15 hover:bg-accent/25 text-accent border border-accent/30 transition-colors"
+                >
+                  Go to predictions
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </>
+            )}
+          </motion.div>
         )}
       </motion.div>
     </div>

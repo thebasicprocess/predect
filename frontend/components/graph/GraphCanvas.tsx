@@ -65,8 +65,12 @@ export const GraphCanvas = forwardRef<
     edges: GraphEdge[];
     onNodeSelect: (node: GraphNode | null) => void;
     highlightNodes?: Set<string>;
+    hiddenTypes?: Set<string>;
   }
->(function GraphCanvas({ nodes, edges, onNodeSelect, highlightNodes }, ref) {
+>(function GraphCanvas(
+  { nodes, edges, onNodeSelect, highlightNodes, hiddenTypes },
+  ref
+) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const posRef = useRef<Map<string, NodePos>>(new Map());
@@ -91,6 +95,7 @@ export const GraphCanvas = forwardRef<
   // Hover ref (avoids re-running draw effect on hover change — we read it inside draw())
   const hoveredRef = useRef<string | null>(null);
   const highlightRef = useRef<Set<string>>(new Set());
+  const hiddenTypesRef = useRef<Set<string>>(new Set());
 
   // Sync hovered state into ref for the animation loop
   useEffect(() => {
@@ -100,6 +105,10 @@ export const GraphCanvas = forwardRef<
   useEffect(() => {
     highlightRef.current = highlightNodes ?? new Set();
   }, [highlightNodes]);
+
+  useEffect(() => {
+    hiddenTypesRef.current = hiddenTypes ?? new Set();
+  }, [hiddenTypes]);
 
   // ── Degree map ────────────────────────────────────────────────────────────
   const degreeMapRef = useRef<Map<string, number>>(new Map());
@@ -184,6 +193,7 @@ export const GraphCanvas = forwardRef<
       const camera = cameraRef.current;
       const currentHovered = hoveredRef.current;
       const highlighted = highlightRef.current;
+      const hiddenTypes = hiddenTypesRef.current;
 
       // ── Force simulation (first 300 ticks) ──────────────────────────────
       if (tickRef.current < 300) {
@@ -253,6 +263,14 @@ export const GraphCanvas = forwardRef<
         const a = positions.get(e.source_id);
         const b = positions.get(e.target_id);
         if (!a || !b) return;
+        // Skip edge if either endpoint node type is hidden
+        const srcNode = nodesRef.current.find((n) => n.id === e.source_id);
+        const tgtNode = nodesRef.current.find((n) => n.id === e.target_id);
+        if (
+          (srcNode && hiddenTypes.has(srcNode.type)) ||
+          (tgtNode && hiddenTypes.has(tgtNode.type))
+        )
+          return;
 
         ctx.strokeStyle = "rgba(99,91,255,0.25)";
         ctx.lineWidth = Math.max(0.5, e.weight * 0.8);
@@ -278,6 +296,7 @@ export const GraphCanvas = forwardRef<
       nodesRef.current.forEach((n) => {
         const pos = positions.get(n.id);
         if (!pos) return;
+        if (hiddenTypes.has(n.type)) return;
 
         const color = NODE_COLORS[n.type] ?? "#635BFF";
         const r = getRadius(n);
@@ -394,6 +413,7 @@ export const GraphCanvas = forwardRef<
     // Check if we're clicking on a node — if so, don't start pan
     let onNode = false;
     for (const node of nodesRef.current) {
+      if (hiddenTypesRef.current.has(node.type)) continue;
       const pos = posRef.current.get(node.id);
       if (!pos) continue;
       const r = getRadius(node);
@@ -434,6 +454,7 @@ export const GraphCanvas = forwardRef<
     const { x: wx, y: wy } = toWorld(mx, my);
     let found: string | null = null;
     for (const node of nodesRef.current) {
+      if (hiddenTypesRef.current.has(node.type)) continue;
       const pos = posRef.current.get(node.id);
       if (!pos) continue;
       const r = getRadius(node);
@@ -468,6 +489,7 @@ export const GraphCanvas = forwardRef<
     const { x: wx, y: wy } = toWorld(mx, my);
 
     for (const node of nodesRef.current) {
+      if (hiddenTypesRef.current.has(node.type)) continue;
       const pos = posRef.current.get(node.id);
       if (!pos) continue;
       const r = getRadius(node);
