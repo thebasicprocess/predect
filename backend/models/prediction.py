@@ -18,6 +18,13 @@ class TimelineItem(BaseModel):
     outlook: str
 
 
+class PredictedEvent(BaseModel):
+    period: str
+    event: str
+    probability: float
+    category: str = "general"
+
+
 class ConfidenceBand(BaseModel):
     score: float
     band: List[float]
@@ -34,6 +41,7 @@ class PredictionReport(BaseModel):
     timelineOutlook: List[TimelineItem]
     agentConsensus: float
     dominantNarratives: List[str]
+    predictedEvents: List[PredictedEvent] = []
 
 
 class PredictRequest(BaseModel):

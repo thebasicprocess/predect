@@ -9,7 +9,7 @@ from backend.db.database import get_connection
 from backend.services.evidence_collector import collect_evidence
 from backend.services.simulation import run_full_simulation
 from backend.services.report_generator import generate_report
-from backend.services.graph_service import get_or_create_node, create_edge
+from backend.services.graph_service import get_or_create_node, create_edge, register_node_for_prediction
 
 router = APIRouter()
 
@@ -39,11 +39,24 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
                 (evidence_id, prediction_id, request.query, json.dumps([e.model_dump() for e in evidence_items])),
             )
 
-        await emit({"phase": "evidence", "step": 1, "totalSteps": 6, "message": f"Collected {len(evidence_items)} evidence items", "data": {"count": len(evidence_items)}})
+        await emit({
+            "phase": "evidence",
+            "step": 1,
+            "totalSteps": 6,
+            "message": f"Collected {len(evidence_items)} evidence items",
+            "data": {
+                "count": len(evidence_items),
+                "items": [
+                    {"title": e.title, "source": e.source, "relevance_score": e.relevance_score, "url": e.url}
+                    for e in evidence_items[:12]
+                ]
+            }
+        })
 
-        await emit({"phase": "graph", "step": 2, "totalSteps": 6, "message": "Building knowledge graph...", "model": "glm-4-air", "task": "graph_construction"})
+        await emit({"phase": "graph", "step": 2, "totalSteps": 6, "message": "Building knowledge graph...", "model": "glm-4.5", "task": "graph_construction"})
 
         pred_node = get_or_create_node("Prediction", request.query[:100])
+        register_node_for_prediction(prediction_id, pred_node.id)
 
         entity_names = set()
         for item in evidence_items:
@@ -52,11 +65,12 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
 
         for entity in list(entity_names)[:20]:
             entity_node = get_or_create_node("Concept", entity)
+            register_node_for_prediction(prediction_id, entity_node.id)
             create_edge(pred_node.id, entity_node.id, "RELATES_TO", weight=0.8)
 
         await emit({"phase": "graph", "step": 2, "totalSteps": 6, "message": f"Graph updated with {len(entity_names)} entities"})
 
-        await emit({"phase": "agents", "step": 3, "totalSteps": 6, "message": "Generating agent personas...", "model": "glm-4-flash", "task": "persona_generation"})
+        await emit({"phase": "agents", "step": 3, "totalSteps": 6, "message": "Generating agent personas...", "model": "glm-4.5-air", "task": "persona_generation"})
 
         sim_id = str(uuid.uuid4())
         with conn:
@@ -79,7 +93,7 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
                 (json.dumps([a.model_dump() for a in agents]), json.dumps([r.model_dump() for r in rounds]), "complete", sim_id),
             )
 
-        await emit({"phase": "analysis", "step": 5, "totalSteps": 6, "message": "Synthesizing prediction...", "model": "glm-4", "task": "prediction_synthesis"})
+        await emit({"phase": "analysis", "step": 5, "totalSteps": 6, "message": "Synthesizing prediction...", "model": "glm-4.7", "task": "prediction_synthesis"})
 
         report = await generate_report(
             query=request.query,

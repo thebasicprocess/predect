@@ -20,7 +20,14 @@ export function PipelinePanel() {
 
   if (status === "idle") return null;
 
-  const completedPhases = new Set(events.map((e) => e.phase));
+  const phaseOrder = phases.map((p) => p.id);
+  const currentPhaseIdx = phaseOrder.indexOf(currentPhase);
+  const isPhaseDone = (phaseId: string) => {
+    if (status === "complete") return true;
+    if (status === "error") return false;
+    const idx = phaseOrder.indexOf(phaseId);
+    return currentPhaseIdx > 0 && idx < currentPhaseIdx;
+  };
 
   return (
     <Card className="mb-4">
@@ -47,7 +54,7 @@ export function PipelinePanel() {
 
       <div className="space-y-2">
         {phases.map((phase) => {
-          const done = completedPhases.has(phase.id);
+          const done = isPhaseDone(phase.id);
           const active = currentPhase === phase.id && status === "running";
           return (
             <div key={phase.id} className="flex items-center gap-2.5">

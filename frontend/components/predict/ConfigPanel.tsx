@@ -1,9 +1,11 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
 import { useSettingsStore } from "@/lib/stores/settingsStore";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { SlidersHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ConfigPanelProps {
   query: string;
@@ -15,6 +17,8 @@ interface ConfigPanelProps {
   onSubmit: () => void;
   loading: boolean;
 }
+
+const MAX_CHARS = 500;
 
 const domains = [
   "general",
@@ -35,6 +39,17 @@ const horizons = [
   "2+ years",
 ];
 
+const placeholderExamples = [
+  "What will happen with Bitcoin in the next 3 months?",
+  "Will the Fed cut interest rates before Q3?",
+  "What's the likelihood of a recession in 2025?",
+  "How will AI regulation evolve in Europe?",
+  "Will Nvidia maintain its GPU market dominance?",
+  "What happens to housing prices if rates drop 1%?",
+  "Can Tesla recover its market share by year-end?",
+  "Will open-source LLMs match GPT-5 performance?",
+];
+
 export function ConfigPanel({
   query,
   setQuery,
@@ -46,6 +61,33 @@ export function ConfigPanel({
   loading,
 }: ConfigPanelProps) {
   const { agentCount, rounds, setAgentCount, setRounds } = useSettingsStore();
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Rotate placeholder every 3s when query is empty
+  useEffect(() => {
+    if (query) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+    intervalRef.current = setInterval(() => {
+      setPlaceholderIdx((i) => (i + 1) % placeholderExamples.length);
+    }, 3000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [query]);
+
+  const charsUsed = query.length;
+  const charsLeft = MAX_CHARS - charsUsed;
+  const isNearLimit = charsLeft <= 50;
+  const isAtLimit = charsLeft <= 0;
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (e.target.value.length <= MAX_CHARS) {
+      setQuery(e.target.value);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -57,22 +99,38 @@ export function ConfigPanel({
       <Card>
         <CardHeader>
           <CardTitle>Question</CardTitle>
+          {/* Character counter — only shows when typing */}
+          {charsUsed > 0 && (
+            <span
+              className={cn(
+                "text-[11px] font-mono tabular-nums transition-colors",
+                isAtLimit
+                  ? "text-danger"
+                  : isNearLimit
+                  ? "text-warning"
+                  : "text-text-muted"
+              )}
+            >
+              {charsLeft} left
+            </span>
+          )}
         </CardHeader>
         <Textarea
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="What will happen with..."
+          onChange={handleChange}
+          placeholder={placeholderExamples[placeholderIdx]}
           rows={4}
           className="mb-3"
+          maxLength={MAX_CHARS}
         />
         <div className="flex flex-col gap-1.5">
           <Button
             onClick={onSubmit}
             loading={loading}
-            disabled={!query.trim()}
+            disabled={!query.trim() || isAtLimit}
             className="w-full"
           >
-            Run Prediction
+            {loading ? "Running..." : "Run Prediction"}
           </Button>
           <p className="text-[10px] text-text-muted text-center font-mono select-none">
             ⌘↵ to run

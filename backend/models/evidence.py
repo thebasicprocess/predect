@@ -28,3 +28,6 @@ class CollectRequest(BaseModel):
     query: str
     prediction_id: Optional[str] = None
     max_items: Optional[int] = 20
+    news_api_key: Optional[str] = None
+    gnews_api_key: Optional[str] = None
+    alpha_vantage_key: Optional[str] = None

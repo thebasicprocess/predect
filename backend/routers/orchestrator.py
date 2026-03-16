@@ -24,5 +24,11 @@ async def status():
 async def usage():
     conn = get_connection()
     rows = conn.execute("SELECT status, COUNT(*) as cnt FROM predictions GROUP BY status").fetchall()
+    pred_count = conn.execute("SELECT COUNT(*) FROM predictions WHERE status='complete'").fetchone()[0]
     conn.close()
-    return {"predictions_by_status": {r["status"]: r["cnt"] for r in rows}}
+    return {
+        "predictions_by_status": {r["status"]: r["cnt"] for r in rows},
+        "total_predictions": pred_count,
+        "estimated_tokens": pred_count * 15000,
+        "models_used": ["glm-4.5-air", "glm-4.5", "glm-4.7", "glm-5"],
+    }

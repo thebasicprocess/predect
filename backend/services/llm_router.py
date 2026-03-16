@@ -4,7 +4,6 @@ import re
 from openai import AsyncOpenAI
 from typing import Optional
 
-ZAI_API_KEY = os.getenv("ZAI_API_KEY", "")
 ZAI_BASE_URL = os.getenv("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4/")
 
 TASK_MODEL_MAP = {
@@ -38,8 +37,8 @@ TASK_TIER = {
 
 def get_client() -> AsyncOpenAI:
     return AsyncOpenAI(
-        api_key=ZAI_API_KEY,
-        base_url=ZAI_BASE_URL,
+        api_key=os.getenv("ZAI_API_KEY", ""),
+        base_url=os.getenv("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4/"),
     )
 
 

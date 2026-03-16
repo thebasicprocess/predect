@@ -15,7 +15,12 @@ router = APIRouter()
 
 @router.post("/collect")
 async def collect(request: CollectRequest):
-    items = await collect_evidence(request.query, max_items=request.max_items or 20)
+    items = await collect_evidence(
+        request.query,
+        max_items=request.max_items or 20,
+        news_api_key=request.news_api_key or None,
+        gnews_api_key=request.gnews_api_key or None,
+    )
     bundle_id = str(uuid.uuid4())
     conn = get_connection()
     with conn:

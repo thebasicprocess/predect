@@ -27,14 +27,15 @@ export function Navigation() {
   return (
     <>
       {/* Top nav — always visible */}
-      <nav className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-border bg-bg-base/80 backdrop-blur-glass">
+      <nav className="nav-gradient-border fixed top-0 left-0 right-0 z-50 h-14 border-b border-border bg-bg-base/80 backdrop-blur-glass">
         <div className="max-w-screen-2xl mx-auto h-full px-6 flex items-center justify-between">
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
+            <div className="relative w-7 h-7 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center transition-all duration-300 group-hover:bg-accent/30 group-hover:shadow-[0_0_12px_rgba(99,91,255,0.4)]">
               <BrainCircuit className="w-4 h-4 text-accent" />
             </div>
             <span className="font-bold text-sm tracking-tight">
-              PRE<span className="text-accent">DECT</span>
+              PRE<span className="text-accent" style={{ filter: "drop-shadow(0 0 6px rgba(99,91,255,0.6))" }}>DECT</span>
             </span>
           </Link>
 
@@ -59,22 +60,40 @@ export function Navigation() {
                   {active && (
                     <motion.div
                       layoutId="nav-active"
-                      className="absolute inset-0 bg-white/6 rounded-lg border border-border"
+                      className="absolute inset-0 rounded-lg border border-accent/25"
+                      style={{
+                        background: "rgba(99,91,255,0.08)",
+                        boxShadow: "0 0 12px rgba(99,91,255,0.15), inset 0 0 8px rgba(99,91,255,0.05)",
+                      }}
                       transition={{ type: "spring", stiffness: 400, damping: 35 }}
                     />
                   )}
-                  <Icon className="relative w-3.5 h-3.5" />
+                  <Icon
+                    className={cn("relative w-3.5 h-3.5 transition-colors duration-200", active && "text-accent")}
+                  />
                   <span className="relative">{label}</span>
                 </Link>
               );
             })}
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-xs text-text-muted">Z.AI Connected</span>
+          {/* Z.AI status badge */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-success/20 bg-success/5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-60" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-success status-glow-pulse" />
+            </span>
+            <span className="text-xs text-success/80 font-medium">Z.AI Connected</span>
           </div>
         </div>
+
+        {/* Thin gradient bottom border accent */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, rgba(99,91,255,0.5) 30%, rgba(167,139,250,0.4) 60%, transparent 100%)",
+          }}
+        />
       </nav>
 
       {/* Bottom tab bar — mobile only (< sm) */}
@@ -93,6 +112,17 @@ export function Navigation() {
                 active ? "text-accent" : "text-text-muted"
               )}
             >
+              {active && (
+                <motion.div
+                  layoutId="mobile-nav-active"
+                  className="absolute bottom-0 w-8 h-0.5 rounded-t-full"
+                  style={{
+                    background: "linear-gradient(90deg, #635BFF, #A78BFA)",
+                    boxShadow: "0 0 8px rgba(99,91,255,0.6)",
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                />
+              )}
               <Icon className="w-5 h-5" />
               <span className="text-[10px] font-medium leading-none">{label}</span>
             </Link>

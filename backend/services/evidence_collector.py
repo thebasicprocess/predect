@@ -174,13 +174,88 @@ Return only valid JSON."""
     return enriched
 
 
-async def collect_evidence(query: str, max_items: int = 20) -> List[EvidenceItem]:
-    results = await asyncio.gather(
+async def collect_newsapi(query: str, api_key: str, max_results: int = 5) -> List[EvidenceItem]:
+    """Collect from NewsAPI.org — only runs when caller provides an API key."""
+    try:
+        url = (
+            f"https://newsapi.org/v2/everything"
+            f"?q={quote(query)}&pageSize={max_results}&sortBy=relevancy&language=en"
+        )
+        headers = {"X-Api-Key": api_key}
+        async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
+            resp = await client.get(url)
+        data = resp.json()
+        items = []
+        for article in data.get("articles", []):
+            url_str = article.get("url", "")
+            if not url_str:
+                continue
+            title = article.get("title") or ""
+            snippet = article.get("description") or article.get("content") or title
+            items.append(EvidenceItem(
+                id=hashlib.md5(url_str.encode()).hexdigest(),
+                title=title,
+                url=url_str,
+                source="newsapi",
+                snippet=str(snippet)[:500],
+                credibility_score=0.8,
+                relevance_score=0.75,
+                published_at=article.get("publishedAt"),
+            ))
+        return items
+    except Exception:
+        return []
+
+
+async def collect_gnews(query: str, api_key: str, max_results: int = 5) -> List[EvidenceItem]:
+    """Collect from GNews.io — only runs when caller provides an API key."""
+    try:
+        url = (
+            f"https://gnews.io/api/v4/search"
+            f"?q={quote(query)}&max={max_results}&lang=en&token={api_key}"
+        )
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url)
+        data = resp.json()
+        items = []
+        for article in data.get("articles", []):
+            url_str = article.get("url", "")
+            if not url_str:
+                continue
+            title = article.get("title") or ""
+            snippet = article.get("description") or title
+            items.append(EvidenceItem(
+                id=hashlib.md5(url_str.encode()).hexdigest(),
+                title=title,
+                url=url_str,
+                source="gnews",
+                snippet=str(snippet)[:500],
+                credibility_score=0.75,
+                relevance_score=0.75,
+                published_at=article.get("publishedAt"),
+            ))
+        return items
+    except Exception:
+        return []
+
+
+async def collect_evidence(
+    query: str,
+    max_items: int = 20,
+    news_api_key: str | None = None,
+    gnews_api_key: str | None = None,
+) -> List[EvidenceItem]:
+    tasks = [
         collect_arxiv(query, max_results=5),
         collect_hn(query, max_results=5),
         collect_reddit(query, max_results=5),
-        return_exceptions=True,
-    )
+    ]
+    if news_api_key:
+        tasks.append(collect_newsapi(query, news_api_key, max_results=5))
+    if gnews_api_key:
+        tasks.append(collect_gnews(query, gnews_api_key, max_results=5))
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
     items: List[EvidenceItem] = []
     for r in results:

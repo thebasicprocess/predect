@@ -1,18 +1,23 @@
 import json
+from typing import Optional
 from fastapi import APIRouter
-from backend.services.graph_service import get_all_nodes, get_all_edges, get_graph_stats
+from backend.services.graph_service import get_all_nodes, get_all_edges, get_graph_stats, get_nodes_for_prediction, get_edges_for_prediction
 from backend.db.database import get_connection
 
 router = APIRouter()
 
 
 @router.get("/nodes")
-async def nodes(limit: int = 500):
+async def nodes(limit: int = 500, prediction_id: Optional[str] = None):
+    if prediction_id:
+        return [n.model_dump() for n in get_nodes_for_prediction(prediction_id, limit)]
     return [n.model_dump() for n in get_all_nodes(limit)]
 
 
 @router.get("/edges")
-async def edges(limit: int = 1000):
+async def edges(limit: int = 1000, prediction_id: Optional[str] = None):
+    if prediction_id:
+        return [e.model_dump() for e in get_edges_for_prediction(prediction_id, limit)]
     return [e.model_dump() for e in get_all_edges(limit)]
 
 

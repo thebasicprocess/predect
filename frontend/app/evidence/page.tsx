@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { collectEvidence } from "@/lib/api";
+import { useSettingsStore } from "@/lib/stores/settingsStore";
 import {
   FileSearch,
   ExternalLink,
@@ -35,16 +36,288 @@ interface EvidenceItem {
   entities: string[];
 }
 
+// --- Credibility Matrix SVG scatter plot ---
+
+const PLOT_W = 300;
+const PLOT_H = 200;
+const PAD_L = 28;
+const PAD_B = 28;
+const PAD_T = 20;
+const PAD_R = 16;
+const INNER_W = PLOT_W - PAD_L - PAD_R;
+const INNER_H = PLOT_H - PAD_T - PAD_B;
+
+function CredibilityMatrix({ items }: { items: EvidenceItem[] }) {
+  const [tooltip, setTooltip] = useState<{
+    x: number;
+    y: number;
+    title: string;
+    source: string;
+  } | null>(null);
+
+  if (items.length === 0) return null;
+
+  // Grid lines
+  const gridLines = [0.25, 0.5, 0.75].map((v) => ({
+    xPx: PAD_L + v * INNER_W,
+    yPx: PAD_T + (1 - v) * INNER_H,
+  }));
+
+  return (
+    <Card className="mt-6">
+      <div className="mb-3">
+        <h3 className="text-sm font-semibold text-text-primary">
+          Evidence Credibility Matrix
+        </h3>
+        <p className="text-xs text-text-muted mt-0.5">
+          Relevance vs Credibility — each dot is one evidence item
+        </p>
+      </div>
+      <div className="relative w-full overflow-x-auto">
+        <svg
+          width="100%"
+          viewBox={`0 0 ${PLOT_W} ${PLOT_H}`}
+          className="border border-border rounded-lg bg-white/1"
+        >
+          {/* Quadrant background shading */}
+          {/* Top-right = ideal: high cred / high rel */}
+          <rect
+            x={PAD_L + INNER_W / 2}
+            y={PAD_T}
+            width={INNER_W / 2}
+            height={INNER_H / 2}
+            fill="rgba(99,91,255,0.04)"
+          />
+
+          {/* Grid lines - vertical */}
+          {gridLines.map(({ xPx }, i) => (
+            <line
+              key={`vg-${i}`}
+              x1={xPx}
+              y1={PAD_T}
+              x2={xPx}
+              y2={PAD_T + INNER_H}
+              stroke="rgba(255,255,255,0.06)"
+              strokeWidth="1"
+              strokeDasharray="3 3"
+            />
+          ))}
+          {/* Grid lines - horizontal */}
+          {gridLines.map(({ yPx }, i) => (
+            <line
+              key={`hg-${i}`}
+              x1={PAD_L}
+              y1={yPx}
+              x2={PAD_L + INNER_W}
+              y2={yPx}
+              stroke="rgba(255,255,255,0.06)"
+              strokeWidth="1"
+              strokeDasharray="3 3"
+            />
+          ))}
+
+          {/* Center dividers */}
+          <line
+            x1={PAD_L + INNER_W / 2}
+            y1={PAD_T}
+            x2={PAD_L + INNER_W / 2}
+            y2={PAD_T + INNER_H}
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth="1"
+          />
+          <line
+            x1={PAD_L}
+            y1={PAD_T + INNER_H / 2}
+            x2={PAD_L + INNER_W}
+            y2={PAD_T + INNER_H / 2}
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth="1"
+          />
+
+          {/* Axes */}
+          <line
+            x1={PAD_L}
+            y1={PAD_T}
+            x2={PAD_L}
+            y2={PAD_T + INNER_H}
+            stroke="rgba(255,255,255,0.2)"
+            strokeWidth="1"
+          />
+          <line
+            x1={PAD_L}
+            y1={PAD_T + INNER_H}
+            x2={PAD_L + INNER_W}
+            y2={PAD_T + INNER_H}
+            stroke="rgba(255,255,255,0.2)"
+            strokeWidth="1"
+          />
+
+          {/* Axis labels */}
+          <text
+            x={PAD_L + INNER_W / 2}
+            y={PLOT_H - 4}
+            textAnchor="middle"
+            fill="rgba(255,255,255,0.35)"
+            fontSize="8"
+            fontFamily="ui-monospace,monospace"
+          >
+            Relevance →
+          </text>
+          <text
+            x={9}
+            y={PAD_T + INNER_H / 2}
+            textAnchor="middle"
+            fill="rgba(255,255,255,0.35)"
+            fontSize="8"
+            fontFamily="ui-monospace,monospace"
+            transform={`rotate(-90, 9, ${PAD_T + INNER_H / 2})`}
+          >
+            Cred →
+          </text>
+
+          {/* Quadrant corner labels */}
+          <text
+            x={PAD_L + INNER_W - 3}
+            y={PAD_T + 10}
+            textAnchor="end"
+            fill="rgba(99,91,255,0.55)"
+            fontSize="6"
+            fontFamily="sans-serif"
+          >
+            High/High
+          </text>
+          <text
+            x={PAD_L + 3}
+            y={PAD_T + 10}
+            textAnchor="start"
+            fill="rgba(255,255,255,0.25)"
+            fontSize="6"
+            fontFamily="sans-serif"
+          >
+            Low/High
+          </text>
+          <text
+            x={PAD_L + INNER_W - 3}
+            y={PAD_T + INNER_H - 4}
+            textAnchor="end"
+            fill="rgba(255,255,255,0.25)"
+            fontSize="6"
+            fontFamily="sans-serif"
+          >
+            High/Low
+          </text>
+          <text
+            x={PAD_L + 3}
+            y={PAD_T + INNER_H - 4}
+            textAnchor="start"
+            fill="rgba(239,68,68,0.45)"
+            fontSize="6"
+            fontFamily="sans-serif"
+          >
+            Low/Low
+          </text>
+
+          {/* Dots */}
+          {items.map((item) => {
+            const cx = PAD_L + item.relevance_score * INNER_W;
+            const cy = PAD_T + (1 - item.credibility_score) * INNER_H;
+            const color = sourceColors[item.source] || "#635BFF";
+            return (
+              <circle
+                key={item.id}
+                cx={cx}
+                cy={cy}
+                r={4}
+                fill={color}
+                opacity={0.8}
+                className="cursor-pointer"
+                onMouseEnter={() =>
+                  setTooltip({ x: cx, y: cy, title: item.title, source: item.source })
+                }
+                onMouseLeave={() => setTooltip(null)}
+              />
+            );
+          })}
+
+          {/* Tooltip */}
+          {tooltip && (() => {
+            const ttW = 120;
+            const ttH = 28;
+            const ttX = Math.min(tooltip.x + 6, PLOT_W - ttW - 4);
+            const ttY = Math.max(tooltip.y - ttH - 4, PAD_T);
+            return (
+              <g>
+                <rect
+                  x={ttX}
+                  y={ttY}
+                  width={ttW}
+                  height={ttH}
+                  rx={4}
+                  fill="#1a1a2e"
+                  stroke="rgba(255,255,255,0.12)"
+                  strokeWidth="0.5"
+                />
+                <text
+                  x={ttX + 6}
+                  y={ttY + 10}
+                  fill="rgba(255,255,255,0.7)"
+                  fontSize="5.5"
+                  fontFamily="sans-serif"
+                >
+                  {tooltip.source.toUpperCase()}
+                </text>
+                <text
+                  x={ttX + 6}
+                  y={ttY + 20}
+                  fill="rgba(255,255,255,0.9)"
+                  fontSize="6"
+                  fontFamily="sans-serif"
+                >
+                  {tooltip.title.slice(0, 26)}
+                  {tooltip.title.length > 26 ? "…" : ""}
+                </text>
+              </g>
+            );
+          })()}
+        </svg>
+      </div>
+
+      {/* Source legend */}
+      <div className="flex flex-wrap gap-3 mt-3">
+        {Object.entries(sourceColors)
+          .filter(([src]) => items.some((i) => i.source === src))
+          .map(([src, color]) => (
+            <div key={src} className="flex items-center gap-1.5">
+              <div
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ background: color }}
+              />
+              <span className="text-xs text-text-muted">{src}</span>
+            </div>
+          ))}
+      </div>
+    </Card>
+  );
+}
+
+// --- Main page ---
+
 export default function EvidencePage() {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<EvidenceItem[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const { newsApiKey, gNewsApiKey, alphaVantageKey } = useSettingsStore();
+
   const handleCollect = async () => {
     if (!query.trim()) return;
     setLoading(true);
     try {
-      const result = await collectEvidence(query);
+      const result = await collectEvidence(query, undefined, {
+        newsApiKey,
+        gNewsApiKey,
+        alphaVantageKey,
+      });
       setItems(result.items || []);
     } catch {
       // ignore errors
@@ -85,6 +358,14 @@ export default function EvidencePage() {
               Collect Evidence
             </Button>
           </div>
+          {(newsApiKey || gNewsApiKey) && (
+            <p className="text-xs text-text-muted mt-2">
+              Premium sources active:{" "}
+              {[newsApiKey && "NewsAPI", gNewsApiKey && "GNews"]
+                .filter(Boolean)
+                .join(", ")}
+            </p>
+          )}
         </Card>
 
         {/* Skeleton loading state */}
@@ -115,7 +396,7 @@ export default function EvidencePage() {
                 {items.length} items collected
               </span>
               <div className="flex gap-2 flex-wrap">
-                {["arxiv", "hn", "reddit", "web"].map((src) => {
+                {["arxiv", "hn", "reddit", "web", "newsapi", "gnews"].map((src) => {
                   const count = items.filter((i) => i.source === src).length;
                   if (!count) return null;
                   return (
@@ -192,6 +473,9 @@ export default function EvidencePage() {
                 </motion.div>
               ))}
             </div>
+
+            {/* Credibility Matrix */}
+            <CredibilityMatrix items={items} />
           </div>
         )}
 

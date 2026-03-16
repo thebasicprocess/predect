@@ -3,6 +3,7 @@ node_modules/
 backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
+__pycache__/
 **/*.pyc
 backend/predect.db
 .env
@@ -10,3 +11,17 @@ backend/predect.db
 .DS_Store
 dist/
 .vercel/
+
+.vercel
+
+# SQLite database
+*.db
+predect.db
+/data/
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+
+# Railway
+.railway/

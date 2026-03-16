@@ -68,10 +68,29 @@ body {
 }
 
 .hero-bg {
-  background: radial-gradient(ellipse at 20% 50%, rgba(99, 91, 255, 0.15) 0%, transparent 50%),
-              radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.1) 0%, transparent 50%),
-              radial-gradient(ellipse at 60% 80%, rgba(96, 165, 250, 0.08) 0%, transparent 50%),
+  position: relative;
+  background: radial-gradient(ellipse at 20% 50%, rgba(99, 91, 255, 0.18) 0%, transparent 55%),
+              radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.12) 0%, transparent 55%),
+              radial-gradient(ellipse at 60% 80%, rgba(96, 165, 250, 0.1) 0%, transparent 50%),
               var(--bg-base);
+  background-size: 200% 200%;
+  animation: hero-shift 12s ease-in-out infinite;
+}
+
+@keyframes hero-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.hero-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .skeleton {
@@ -90,3 +109,77 @@ body {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+
+/* Gradient text with glow */
+.gradient-text-glow {
+  background: linear-gradient(135deg, #635BFF, #A78BFA, #60A5FA);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 24px rgba(99, 91, 255, 0.45));
+}
+
+/* Step connector line for desktop four-phase pipeline */
+.step-connector {
+  position: absolute;
+  top: 20px;
+  left: calc(50% + 24px);
+  right: calc(-50% + 24px);
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(99, 91, 255, 0.4) 0px,
+    rgba(99, 91, 255, 0.4) 4px,
+    transparent 4px,
+    transparent 10px
+  );
+}
+
+/* Animated step connector */
+@keyframes dash-flow {
+  0%   { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+
+.step-connector-animated {
+  position: absolute;
+  top: 20px;
+  left: calc(50% + 24px);
+  right: calc(-50% + 24px);
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(99, 91, 255, 0.5) 0px,
+    rgba(99, 91, 255, 0.5) 4px,
+    transparent 4px,
+    transparent 10px
+  );
+  background-size: 40px 1px;
+  animation: dash-flow 1.5s linear infinite;
+}
+
+/* Nav gradient bottom border */
+.nav-gradient-border::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99, 91, 255, 0.6), rgba(167, 139, 250, 0.4), transparent);
+}
+
+/* Pulsing glow ring for status indicators */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+}
+
+.status-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Confidence arc colors */
+.confidence-arc-high   { stroke: #10B981; }
+.confidence-arc-medium { stroke: #F59E0B; }
+.confidence-arc-low    { stroke: #EF4444; }

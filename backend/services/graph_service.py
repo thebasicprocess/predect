@@ -61,6 +61,42 @@ def get_all_edges(limit: int = 1000) -> List[Edge]:
     return [Edge(id=r["id"], source_id=r["source_id"], target_id=r["target_id"], relationship=r["relationship"], weight=r["weight"], properties=json.loads(r["properties"] or "{}"), created_at=r["created_at"]) for r in rows]
 
 
+def register_node_for_prediction(prediction_id: str, node_id: str) -> None:
+    conn = get_connection()
+    with conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO prediction_node_map (prediction_id, node_id) VALUES (?, ?)",
+            (prediction_id, node_id),
+        )
+    conn.close()
+
+
+def get_nodes_for_prediction(prediction_id: str, limit: int = 500) -> List[Node]:
+    conn = get_connection()
+    rows = conn.execute(
+        """SELECT n.* FROM nodes n
+           JOIN prediction_node_map m ON n.id = m.node_id
+           WHERE m.prediction_id = ?
+           ORDER BY n.created_at DESC LIMIT ?""",
+        (prediction_id, limit),
+    ).fetchall()
+    conn.close()
+    return [Node(id=r["id"], type=r["type"], name=r["name"], properties=json.loads(r["properties"] or "{}"), created_at=r["created_at"]) for r in rows]
+
+
+def get_edges_for_prediction(prediction_id: str, limit: int = 1000) -> List[Edge]:
+    conn = get_connection()
+    rows = conn.execute(
+        """SELECT e.* FROM edges e
+           JOIN prediction_node_map m1 ON e.source_id = m1.node_id AND m1.prediction_id = ?
+           JOIN prediction_node_map m2 ON e.target_id = m2.node_id AND m2.prediction_id = ?
+           ORDER BY e.created_at DESC LIMIT ?""",
+        (prediction_id, prediction_id, limit),
+    ).fetchall()
+    conn.close()
+    return [Edge(id=r["id"], source_id=r["source_id"], target_id=r["target_id"], relationship=r["relationship"], weight=r["weight"], properties=json.loads(r["properties"] or "{}"), created_at=r["created_at"]) for r in rows]
+
+
 def get_graph_stats() -> GraphStats:
     conn = get_connection()
     node_count = conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0]

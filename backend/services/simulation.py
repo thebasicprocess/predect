@@ -68,10 +68,12 @@ Agent 2: {agent2.name} ({agent2.role})
 Beliefs: {'; '.join(agent2.beliefs[:3])}
 Bias: {agent2.behavioral_bias}
 
-Generate their interaction and belief updates.
+Generate their interaction and belief updates. Write the agent statements as direct first-person quotes — natural, specific, and grounded in their beliefs and bias.
 
 Return JSON: {{
-  "interaction_summary": "2-3 sentence summary",
+  "interaction_summary": "2-3 sentence summary of the debate",
+  "agent1_statement": "Direct quote from Agent 1 making their key point (1-2 sentences, first person)",
+  "agent2_statement": "Direct quote from Agent 2 responding with their view (1-2 sentences, first person)",
   "emergent_claims": ["claim1", "claim2"],
   "agent1_belief_update": "new belief to add",
   "agent2_belief_update": "new belief to add"
@@ -99,9 +101,16 @@ Return JSON: {{
         if on_event:
             await on_event({
                 "phase": "simulation",
-                "step": round_num,
-                "message": f"Round {round_num}: {agent1.name} x {agent2.name}",
-                "data": event.model_dump(),
+                "step": 4,
+                "totalSteps": 6,
+                "message": f"Round {round_num}: {agent1.name} × {agent2.name}",
+                "model": "glm-4.5-air",
+                "task": "simulation_round",
+                "data": {
+                    **event.model_dump(),
+                    "agent1_statement": result.get("agent1_statement", ""),
+                    "agent2_statement": result.get("agent2_statement", ""),
+                },
             })
 
     return events, list(updated_agents.values())
@@ -119,9 +128,11 @@ async def run_full_simulation(
     if on_event:
         await on_event({
             "phase": "agents",
-            "step": 1,
-            "totalSteps": rounds + 2,
+            "step": 3,
+            "totalSteps": 6,
             "message": f"Generated {len(agents)} agent personas",
+            "model": "glm-4.5-air",
+            "task": "persona_generation",
             "data": {"agents": [a.model_dump() for a in agents]},
         })
 

@@ -69,24 +69,39 @@ export async function getPredictionHistory() {
   return res.json();
 }
 
-export async function collectEvidence(query: string, predictionId?: string) {
+export async function collectEvidence(
+  query: string,
+  predictionId?: string,
+  apiKeys?: { newsApiKey?: string; gNewsApiKey?: string; alphaVantageKey?: string }
+) {
   const res = await fetch(`${API_URL}/api/evidence/collect`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, prediction_id: predictionId, max_items: 20 }),
+    body: JSON.stringify({
+      query,
+      prediction_id: predictionId,
+      max_items: 20,
+      news_api_key: apiKeys?.newsApiKey || null,
+      gnews_api_key: apiKeys?.gNewsApiKey || null,
+      alpha_vantage_key: apiKeys?.alphaVantageKey || null,
+    }),
   });
   if (!res.ok) throw new Error("Evidence collection failed");
   return res.json();
 }
 
-export async function getGraphNodes(limit = 500) {
-  const res = await fetch(`${API_URL}/api/graph/nodes?limit=${limit}`);
+export async function getGraphNodes(limit = 500, predictionId?: string) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (predictionId) params.set("prediction_id", predictionId);
+  const res = await fetch(`${API_URL}/api/graph/nodes?${params}`);
   if (!res.ok) return [];
   return res.json();
 }
 
-export async function getGraphEdges(limit = 1000) {
-  const res = await fetch(`${API_URL}/api/graph/edges?limit=${limit}`);
+export async function getGraphEdges(limit = 1000, predictionId?: string) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (predictionId) params.set("prediction_id", predictionId);
+  const res = await fetch(`${API_URL}/api/graph/edges?${params}`);
   if (!res.ok) return [];
   return res.json();
 }

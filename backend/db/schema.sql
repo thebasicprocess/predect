@@ -44,7 +44,14 @@ CREATE TABLE IF NOT EXISTS simulations (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS prediction_node_map (
+    prediction_id TEXT NOT NULL,
+    node_id TEXT NOT NULL,
+    PRIMARY KEY (prediction_id, node_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_predictions_status ON predictions(status);
 CREATE INDEX IF NOT EXISTS idx_predictions_created ON predictions(created_at);
 CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source_id);
 CREATE INDEX IF NOT EXISTS idx_edges_target ON edges(target_id);
+CREATE INDEX IF NOT EXISTS idx_pnm_prediction ON prediction_node_map(prediction_id);

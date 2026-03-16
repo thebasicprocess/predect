@@ -1,12 +1,18 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { GraphCanvas } from "@/components/graph/GraphCanvas";
+import {
+  GraphCanvas,
+  type GraphCanvasHandle,
+  type GraphNode,
+  type GraphEdge,
+} from "@/components/graph/GraphCanvas";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getGraphNodes, getGraphEdges, getGraphStats } from "@/lib/api";
-import { Network, BarChart3 } from "lucide-react";
+import { Network, BarChart3, Plus, Minus, Maximize2 } from "lucide-react";
 
 const NODE_COLORS: Record<string, string> = {
   Person: "#635BFF",
@@ -17,39 +23,55 @@ const NODE_COLORS: Record<string, string> = {
   Prediction: "#EC4899",
 };
 
-interface GraphNode {
-  id: string;
-  type: string;
-  name: string;
-  properties: Record<string, unknown>;
-}
-
-export default function GraphPage() {
+function GraphPageInner() {
+  const searchParams = useSearchParams();
+  const predictionId = searchParams.get("prediction_id") ?? undefined;
   const [selected, setSelected] = useState<GraphNode | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: nodes = [] } = useQuery({
-    queryKey: ["graph-nodes"],
-    queryFn: () => getGraphNodes(),
+  const graphRef = useRef<GraphCanvasHandle>(null);
+
+  const { data: nodes = [] } = useQuery<GraphNode[]>({
+    queryKey: ["graph-nodes", predictionId],
+    queryFn: () => getGraphNodes(500, predictionId),
   });
-  const { data: edges = [] } = useQuery({
-    queryKey: ["graph-edges"],
-    queryFn: () => getGraphEdges(),
+  const { data: edges = [] } = useQuery<GraphEdge[]>({
+    queryKey: ["graph-edges", predictionId],
+    queryFn: () => getGraphEdges(1000, predictionId),
   });
   const { data: stats } = useQuery({
     queryKey: ["graph-stats"],
     queryFn: () => getGraphStats(),
   });
 
+  // Search filtering
+  const filteredNodes: GraphNode[] =
+    searchTerm.trim().length > 0
+      ? (nodes as GraphNode[]).filter((n: GraphNode) =>
+          n.name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      : [];
+
+  const highlightNodes = new Set(filteredNodes.map((n) => n.id));
+
+  const handleNodeSelect = (n: GraphNode | null) => {
+    setSelected(n);
+  };
+
   return (
     <div className="flex flex-col md:flex-row md:h-[calc(100vh-56px)] md:overflow-hidden">
       {/* Graph canvas */}
       <div className="relative bg-[#0a0a0f] h-[50vh] md:h-auto md:flex-1">
         <GraphCanvas
+          ref={graphRef}
           nodes={nodes}
           edges={edges}
-          onNodeSelect={(n) => setSelected(n as GraphNode | null)}
+          onNodeSelect={handleNodeSelect}
+          highlightNodes={highlightNodes}
         />
-        <div className="absolute top-4 left-4 flex items-center gap-2">
+
+        {/* Top-left badges */}
+        <div className="absolute top-4 left-4 flex items-center gap-2 flex-wrap pointer-events-none">
           <Badge variant="accent">
             <Network className="w-3 h-3 mr-1" />
             Knowledge Graph
@@ -57,6 +79,34 @@ export default function GraphPage() {
           <Badge variant="muted">
             {nodes.length} nodes · {edges.length} edges
           </Badge>
+          {predictionId && (
+            <Badge variant="muted">#{predictionId.slice(0, 8)}</Badge>
+          )}
+        </div>
+
+        {/* Zoom controls */}
+        <div className="absolute bottom-4 right-4 flex flex-col gap-1.5 z-10">
+          <button
+            onClick={() => graphRef.current?.zoomIn()}
+            aria-label="Zoom in"
+            className="w-8 h-8 glass rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => graphRef.current?.zoomOut()}
+            aria-label="Zoom out"
+            className="w-8 h-8 glass rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => graphRef.current?.resetCamera()}
+            aria-label="Reset camera"
+            className="w-8 h-8 glass rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -66,6 +116,37 @@ export default function GraphPage() {
         animate={{ opacity: 1, x: 0 }}
         className="w-full md:w-[320px] md:flex-shrink-0 border-t md:border-t-0 md:border-l border-border overflow-y-auto p-4 space-y-4"
       >
+        {/* Node search */}
+        <div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search nodes..."
+            className="w-full bg-white/4 border border-border rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
+          />
+          {filteredNodes.length > 0 && (
+            <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+              {filteredNodes.slice(0, 5).map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => handleNodeSelect(n)}
+                  className="w-full text-left text-xs px-2 py-1 rounded bg-white/4 hover:bg-white/8 transition-colors truncate text-text-secondary"
+                >
+                  <span
+                    className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle flex-shrink-0"
+                    style={{ background: NODE_COLORS[n.type] ?? "#635BFF" }}
+                  />
+                  {n.name}
+                </button>
+              ))}
+            </div>
+          )}
+          {searchTerm.trim().length > 0 && filteredNodes.length === 0 && (
+            <p className="mt-2 text-xs text-text-muted px-1">No nodes found</p>
+          )}
+        </div>
+
         {/* Legend */}
         <Card>
           <CardHeader>
@@ -138,6 +219,27 @@ export default function GraphPage() {
                     {selected.id.slice(0, 16)}...
                   </div>
                 </div>
+                {Object.keys(selected.properties).length > 0 && (
+                  <div>
+                    <div className="text-xs text-text-muted mb-1">
+                      Properties
+                    </div>
+                    <div className="space-y-1">
+                      {Object.entries(selected.properties)
+                        .slice(0, 4)
+                        .map(([k, v]) => (
+                          <div key={k} className="flex justify-between text-xs">
+                            <span className="text-text-muted capitalize">
+                              {k}
+                            </span>
+                            <span className="font-mono text-text-secondary truncate max-w-[120px]">
+                              {String(v)}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
           </motion.div>
@@ -147,11 +249,27 @@ export default function GraphPage() {
           <div className="text-center py-12">
             <Network className="w-8 h-8 text-text-muted mx-auto mb-3" />
             <p className="text-xs text-text-muted">
-              Run a prediction to build the knowledge graph
+              {predictionId
+                ? "No graph nodes for this prediction yet"
+                : "Run a prediction to build the knowledge graph"}
             </p>
           </div>
         )}
       </motion.div>
     </div>
+  );
+}
+
+export default function GraphPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-[calc(100vh-56px)] text-text-muted text-sm">
+          Loading graph...
+        </div>
+      }
+    >
+      <GraphPageInner />
+    </Suspense>
   );
 }

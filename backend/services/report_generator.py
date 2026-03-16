@@ -1,6 +1,6 @@
 from typing import List
 from backend.models.prediction import (
-    PredictionReport, Scenarios, ScenarioItem, TimelineItem, ConfidenceBand
+    PredictionReport, Scenarios, ScenarioItem, TimelineItem, ConfidenceBand, PredictedEvent
 )
 from backend.models.evidence import EvidenceItem
 from backend.models.simulation import AgentPersona, RoundEvent
@@ -33,6 +33,7 @@ async def generate_report(
 
     agent_consensus = min(0.9, len(set(all_claims)) / max(len(all_claims), 1))
 
+    # First call: main report (no predictedEvents — kept separate to avoid LLM ignoring it)
     result = await llm_call_json(
         "prediction_synthesis",
         system_prompt="""You are a world-class analyst synthesizing evidence and simulation data into a structured prediction report.
@@ -72,6 +73,33 @@ Generate a comprehensive prediction report as JSON:
 }}"""
     )
 
+    # Second call: dedicated predicted events (wrapped in object for reliable json_mode)
+    headline = result.get("headline", f"Prediction for: {query}")
+    events_result = await llm_call_json(
+        "prediction_synthesis",
+        system_prompt="You are a prediction specialist. Output valid JSON only.",
+        user_prompt=f"""Based on this prediction, generate 5 concrete predicted events.
+
+Query: {query}
+Domain: {domain}
+Time Horizon: {time_horizon}
+Headline: {headline}
+
+Return JSON in this exact format:
+{{
+  "events": [
+    {{"period": "1 month", "event": "Specific measurable event", "probability": 0.78, "category": "market"}},
+    {{"period": "2 months", "event": "Another concrete event", "probability": 0.65, "category": "technical"}},
+    {{"period": "3 months", "event": "Mid-term milestone", "probability": 0.55, "category": "regulatory"}},
+    {{"period": "6 months", "event": "Longer term development", "probability": 0.45, "category": "political"}},
+    {{"period": "12 months", "event": "Long-range outcome", "probability": 0.35, "category": "social"}}
+  ]
+}}
+
+category must be one of: market, regulatory, technical, political, social""",
+    )
+    events_data = events_result.get("events", [])
+
     score = float(result.get("confidence_score", 0.65))
     band_low = max(0.0, score - 0.15)
     band_high = min(1.0, score + 0.15)
@@ -93,4 +121,5 @@ Generate a comprehensive prediction report as JSON:
         timelineOutlook=[TimelineItem(**t) for t in result.get("timelineOutlook", [])],
         agentConsensus=agent_consensus,
         dominantNarratives=result.get("dominantNarratives", []),
+        predictedEvents=[PredictedEvent(**e) for e in events_data],
     )
