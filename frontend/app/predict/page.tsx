@@ -203,8 +203,8 @@ function PredictPageInner() {
     return () => window.removeEventListener("keydown", handler);
   }, [query, status, handleSubmit]);
 
-  // Load recent predictions for the idle state
-  useEffect(() => {
+  // Load recent predictions for the idle state; refresh after each completion
+  const loadRecentPredictions = useCallback(() => {
     getPredictionHistory()
       .then((data) => {
         const completed = (data as HistoryItem[]).filter((p) => p.status === "complete").slice(0, 6);
@@ -212,6 +212,16 @@ function PredictPageInner() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    loadRecentPredictions();
+  }, [loadRecentPredictions]);
+
+  useEffect(() => {
+    if (status === "complete") {
+      loadRecentPredictions();
+    }
+  }, [status, loadRecentPredictions]);
 
   const handleAddSession = useCallback(() => {
     addSession(query);
