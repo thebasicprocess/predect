@@ -35,6 +35,22 @@ TASK_TIER = {
     "creative_prediction": "premium",
 }
 
+# Lower temperature = more deterministic / calibrated.
+# Creative/diverse tasks use higher temps; structured JSON tasks use lower.
+TASK_TEMPERATURE: dict[str, float] = {
+    "persona_generation": 0.85,       # diversity of personas
+    "simulation_round": 0.75,         # varied debates
+    "quick_query": 0.5,
+    "entity_extraction": 0.2,         # deterministic JSON extraction
+    "graph_construction": 0.2,        # deterministic JSON
+    "evidence_summarization": 0.2,    # scoring should be stable
+    "prediction_synthesis": 0.45,     # calibrated, factual output
+    "financial_analysis": 0.4,
+    "confidence_scoring": 0.3,        # confidence needs to be stable
+    "public_opinion_analysis": 0.5,
+    "creative_prediction": 0.8,
+}
+
 
 def get_client() -> AsyncOpenAI:
     return AsyncOpenAI(
@@ -51,16 +67,21 @@ def get_tier_for_task(task: str) -> str:
     return TASK_TIER.get(task, "balanced")
 
 
+def get_temperature_for_task(task: str) -> float:
+    return TASK_TEMPERATURE.get(task, 0.7)
+
+
 async def llm_call_with_usage(
     task: str,
     system_prompt: str,
     user_prompt: str,
     json_mode: bool = False,
-    temperature: float = 0.7,
+    temperature: float | None = None,
 ) -> Tuple[str, int]:
     """Returns (content, total_tokens)."""
     client = get_client()
     model = get_model_for_task(task)
+    temp = temperature if temperature is not None else get_temperature_for_task(task)
 
     kwargs = {
         "model": model,
@@ -68,7 +89,7 @@ async def llm_call_with_usage(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        "temperature": temperature,
+        "temperature": temp,
     }
 
     if json_mode:
@@ -98,7 +119,7 @@ async def llm_call(
     system_prompt: str,
     user_prompt: str,
     json_mode: bool = False,
-    temperature: float = 0.7,
+    temperature: float | None = None,
 ) -> str:
     content, _ = await llm_call_with_usage(task, system_prompt, user_prompt, json_mode, temperature)
     return content
