@@ -2,7 +2,7 @@ import os
 import json
 import re
 from openai import AsyncOpenAI
-from typing import Optional
+from typing import Optional, Tuple
 
 ZAI_BASE_URL = os.getenv("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4/")
 
@@ -50,13 +50,14 @@ def get_tier_for_task(task: str) -> str:
     return TASK_TIER.get(task, "balanced")
 
 
-async def llm_call(
+async def llm_call_with_usage(
     task: str,
     system_prompt: str,
     user_prompt: str,
     json_mode: bool = False,
     temperature: float = 0.7,
-) -> str:
+) -> Tuple[str, int]:
+    """Returns (content, total_tokens)."""
     client = get_client()
     model = get_model_for_task(task)
 
@@ -73,7 +74,19 @@ async def llm_call(
         kwargs["response_format"] = {"type": "json_object"}
 
     response = await client.chat.completions.create(**kwargs)
-    return response.choices[0].message.content or ""
+    tokens = response.usage.total_tokens if response.usage else 0
+    return response.choices[0].message.content or "", tokens
+
+
+async def llm_call(
+    task: str,
+    system_prompt: str,
+    user_prompt: str,
+    json_mode: bool = False,
+    temperature: float = 0.7,
+) -> str:
+    content, _ = await llm_call_with_usage(task, system_prompt, user_prompt, json_mode, temperature)
+    return content
 
 
 async def llm_call_json(task: str, system_prompt: str, user_prompt: str) -> dict:
@@ -84,4 +97,16 @@ async def llm_call_json(task: str, system_prompt: str, user_prompt: str) -> dict
         match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", raw)
         if match:
             return json.loads(match.group(1))
+        raise ValueError(f"Could not parse JSON from LLM response: {raw[:200]}")
+
+
+async def llm_call_json_with_usage(task: str, system_prompt: str, user_prompt: str) -> Tuple[dict, int]:
+    """Returns (parsed_dict, total_tokens)."""
+    raw, tokens = await llm_call_with_usage(task, system_prompt, user_prompt, json_mode=True)
+    try:
+        return json.loads(raw), tokens
+    except json.JSONDecodeError:
+        match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", raw)
+        if match:
+            return json.loads(match.group(1)), tokens
         raise ValueError(f"Could not parse JSON from LLM response: {raw[:200]}")

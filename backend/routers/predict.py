@@ -95,7 +95,7 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
 
         await emit({"phase": "analysis", "step": 5, "totalSteps": 6, "message": "Synthesizing prediction...", "model": "glm-4.7", "task": "prediction_synthesis"})
 
-        report = await generate_report(
+        report, synthesis_tokens = await generate_report(
             query=request.query,
             domain=request.domain or "general",
             time_horizon=request.time_horizon or "6 months",
@@ -104,7 +104,16 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
             rounds=rounds,
         )
 
-        await emit({"phase": "report", "step": 6, "totalSteps": 6, "message": "Prediction complete!", "data": report.model_dump()})
+        await emit({
+            "phase": "report",
+            "step": 6,
+            "totalSteps": 6,
+            "message": "Prediction complete!",
+            "model": "glm-4.7",
+            "task": "prediction_synthesis",
+            "tokens": synthesis_tokens,
+            "data": report.model_dump(),
+        })
 
         with conn:
             conn.execute(

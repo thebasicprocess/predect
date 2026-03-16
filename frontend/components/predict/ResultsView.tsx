@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { usePredictionStore } from "@/lib/stores/predictionStore";
+import { usePredictionStore, type AgentPersona } from "@/lib/stores/predictionStore";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs } from "@/components/ui/Tabs";
@@ -48,10 +48,13 @@ const TABS = [
   { id: "drivers", label: "Drivers" },
   { id: "timeline", label: "Timeline" },
   { id: "narratives", label: "Narratives" },
+  { id: "agents", label: "Agents" },
 ];
 
+const AGENT_COLORS = ["#635BFF", "#10B981", "#F59E0B", "#EF4444", "#60A5FA", "#A78BFA", "#EC4899", "#F97316"];
+
 export function ResultsView() {
-  const { result, status, predictionId } = usePredictionStore();
+  const { result, status, predictionId, agents, roundEvents } = usePredictionStore();
   const [activeTab, setActiveTab] = useState("report");
   const [copied, setCopied] = useState(false);
 
@@ -366,6 +369,106 @@ export function ResultsView() {
               </p>
             )}
           </Card>
+        )}
+
+        {/* Agents tab */}
+        {activeTab === "agents" && (
+          <div className="space-y-4">
+            {agents.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(agents as AgentPersona[]).map((agent, i) => {
+                    const color = AGENT_COLORS[i % AGENT_COLORS.length];
+                    return (
+                      <motion.div
+                        key={agent.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.06, type: "spring", stiffness: 300, damping: 30 }}
+                      >
+                        <Card>
+                          <div className="flex items-start gap-3">
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                              style={{ background: `${color}25`, color }}
+                            >
+                              {agent.name[0]}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium text-sm text-text-primary">{agent.name}</div>
+                              <div className="text-xs text-text-muted mb-2">{agent.role}</div>
+                              {agent.behavioral_bias && (
+                                <div
+                                  className="inline-block px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold mb-2"
+                                  style={{ background: `${color}18`, color }}
+                                >
+                                  {agent.behavioral_bias}
+                                </div>
+                              )}
+                              {agent.beliefs?.length > 0 && (
+                                <div className="space-y-1">
+                                  {agent.beliefs.slice(0, 3).map((belief, bi) => (
+                                    <div key={bi} className="flex items-start gap-1.5">
+                                      <div className="w-1 h-1 rounded-full mt-1.5 flex-shrink-0" style={{ background: color }} />
+                                      <p className="text-[11px] text-text-muted leading-relaxed">{belief}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {/* Round count for this agent */}
+                          {(() => {
+                            const participations = roundEvents.filter(
+                              (r) => r.agent1_name === agent.name || r.agent2_name === agent.name
+                            ).length;
+                            return participations > 0 ? (
+                              <div className="mt-3 pt-2 border-t border-border flex items-center justify-between">
+                                <span className="text-[10px] text-text-muted">Simulation rounds</span>
+                                <span className="text-[10px] font-mono" style={{ color }}>{participations}</span>
+                              </div>
+                            ) : null;
+                          })()}
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+                {/* Agent consensus */}
+                {report.agentConsensus !== undefined && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Swarm Consensus</CardTitle>
+                    </CardHeader>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <div className="h-2 bg-white/8 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full"
+                            style={{ background: `linear-gradient(90deg, #635BFF, #10B981)` }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.round(report.agentConsensus * 100)}%` }}
+                            transition={{ duration: 1, ease: "easeOut" }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-text-muted mt-1">
+                          <span>Divergent</span>
+                          <span>Consensus</span>
+                        </div>
+                      </div>
+                      <span className="text-2xl font-bold font-mono text-text-primary flex-shrink-0">
+                        {Math.round(report.agentConsensus * 100)}%
+                      </span>
+                    </div>
+                  </Card>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-12 text-text-muted">
+                <p className="text-xs">Agent data not available for this prediction.</p>
+              </div>
+            )}
+          </div>
         )}
       </motion.div>
     </motion.div>

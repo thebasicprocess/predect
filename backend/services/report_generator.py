@@ -4,7 +4,7 @@ from backend.models.prediction import (
 )
 from backend.models.evidence import EvidenceItem
 from backend.models.simulation import AgentPersona, RoundEvent
-from backend.services.llm_router import llm_call_json
+from backend.services.llm_router import llm_call_json_with_usage
 
 
 async def generate_report(
@@ -14,7 +14,8 @@ async def generate_report(
     evidence_items: List[EvidenceItem],
     agents: List[AgentPersona],
     rounds: List[RoundEvent],
-) -> PredictionReport:
+) -> tuple:
+    """Returns (PredictionReport, total_tokens)."""
     all_claims = []
     for r in rounds:
         all_claims.extend(r.emergent_claims)
@@ -34,7 +35,7 @@ async def generate_report(
     agent_consensus = min(0.9, len(set(all_claims)) / max(len(all_claims), 1))
 
     # First call: main report (no predictedEvents — kept separate to avoid LLM ignoring it)
-    result = await llm_call_json(
+    result, tokens1 = await llm_call_json_with_usage(
         "prediction_synthesis",
         system_prompt="""You are a world-class analyst synthesizing evidence and simulation data into a structured prediction report.
 Be specific, data-driven, and calibrated. Output valid JSON only.""",
@@ -75,7 +76,7 @@ Generate a comprehensive prediction report as JSON:
 
     # Second call: dedicated predicted events (wrapped in object for reliable json_mode)
     headline = result.get("headline", f"Prediction for: {query}")
-    events_result = await llm_call_json(
+    events_result, tokens2 = await llm_call_json_with_usage(
         "prediction_synthesis",
         system_prompt="You are a prediction specialist. Output valid JSON only.",
         user_prompt=f"""Based on this prediction, generate 5 concrete predicted events.
@@ -107,7 +108,7 @@ category must be one of: market, regulatory, technical, political, social""",
 
     scenarios_data = result.get("scenarios", {})
 
-    return PredictionReport(
+    report = PredictionReport(
         headline=result.get("headline", f"Prediction for: {query}"),
         verdict=result.get("verdict", "Analysis complete."),
         confidence=ConfidenceBand(score=score, band=[band_low, band_high], color=color),
@@ -123,3 +124,4 @@ category must be one of: market, regulatory, technical, political, social""",
         dominantNarratives=result.get("dominantNarratives", []),
         predictedEvents=[PredictedEvent(**e) for e in events_data],
     )
+    return report, tokens1 + tokens2

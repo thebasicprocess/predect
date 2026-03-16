@@ -3,20 +3,21 @@ import random
 from typing import List, Callable, Awaitable
 from backend.models.simulation import AgentPersona, RoundEvent
 from backend.models.evidence import EvidenceItem
-from backend.services.llm_router import llm_call_json
+from backend.services.llm_router import llm_call_json_with_usage
 
 
 async def generate_personas(
     topic: str,
     evidence_items: List[EvidenceItem],
     count: int = 8,
-) -> List[AgentPersona]:
+) -> tuple:
+    """Returns (agents, tokens)."""
     entities = []
     for item in evidence_items[:10]:
         entities.extend(item.entities[:3])
     entity_str = ", ".join(set(entities[:20])) if entities else "various stakeholders"
 
-    result = await llm_call_json(
+    result, tokens = await llm_call_json_with_usage(
         "persona_generation",
         system_prompt="You are a simulation designer creating diverse agent personas for a prediction simulation.",
         user_prompt=f"""Topic: {topic}
@@ -38,7 +39,7 @@ Make agents diverse: experts, skeptics, optimists, domain insiders, public voice
             beliefs=a.get("beliefs", []),
             behavioral_bias=a.get("behavioral_bias", "neutral"),
         ))
-    return agents
+    return agents, tokens
 
 
 async def run_simulation_round(
@@ -55,7 +56,7 @@ async def run_simulation_round(
     updated_agents = {a.id: a for a in agents}
 
     for agent1, agent2 in pairs:
-        result = await llm_call_json(
+        result, tokens = await llm_call_json_with_usage(
             "simulation_round",
             system_prompt="You are simulating a conversation between two agents analyzing a prediction topic.",
             user_prompt=f"""Round {round_num}. Topic: {topic}
@@ -106,6 +107,7 @@ Return JSON: {{
                 "message": f"Round {round_num}: {agent1.name} × {agent2.name}",
                 "model": "glm-4.5-air",
                 "task": "simulation_round",
+                "tokens": tokens,
                 "data": {
                     **event.model_dump(),
                     "agent1_statement": result.get("agent1_statement", ""),
@@ -123,7 +125,7 @@ async def run_full_simulation(
     rounds: int = 5,
     on_event: Callable[[dict], Awaitable[None]] = None,
 ) -> tuple:
-    agents = await generate_personas(topic, evidence_items, agent_count)
+    agents, persona_tokens = await generate_personas(topic, evidence_items, agent_count)
 
     if on_event:
         await on_event({
@@ -133,6 +135,7 @@ async def run_full_simulation(
             "message": f"Generated {len(agents)} agent personas",
             "model": "glm-4.5-air",
             "task": "persona_generation",
+            "tokens": persona_tokens,
             "data": {"agents": [a.model_dump() for a in agents]},
         })
 

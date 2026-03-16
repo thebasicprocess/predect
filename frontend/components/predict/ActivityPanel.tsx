@@ -15,6 +15,24 @@ const sourceColors: Record<string, string> = {
 
 const agentColors = ["#635BFF", "#10B981", "#F59E0B", "#EF4444", "#60A5FA", "#A78BFA", "#EC4899", "#F97316"];
 
+// Map task name → cost tier for display
+const TASK_TIER: Record<string, "fast" | "balanced" | "premium"> = {
+  persona_generation: "fast",
+  simulation_round: "fast",
+  quick_query: "fast",
+  entity_extraction: "balanced",
+  graph_construction: "balanced",
+  evidence_summarization: "balanced",
+  prediction_synthesis: "premium",
+  financial_analysis: "premium",
+  confidence_scoring: "premium",
+  public_opinion_analysis: "premium",
+  creative_prediction: "premium",
+};
+
+const TIER_COLOR = { fast: "#10B981", balanced: "#F59E0B", premium: "#EF4444" } as const;
+const TIER_LABEL = { fast: "Fast", balanced: "Balanced", premium: "Premium" } as const;
+
 export function ActivityPanel() {
   const { events, agents, roundEvents, evidence, status } = usePredictionStore();
   const modelEvents = events.filter((e) => e.model && e.task);
@@ -24,34 +42,69 @@ export function ActivityPanel() {
     agents.map((a, i) => [a.name, agentColors[i % agentColors.length]])
   );
 
+  // Aggregate total tokens across all model events
+  const totalTokens = modelEvents.reduce((sum, e) => sum + (e.tokens ?? 0), 0);
+
   return (
     <div className="space-y-4">
       {/* Live model activity */}
       <Card>
         <CardHeader>
           <CardTitle>Model Activity</CardTitle>
-          <Activity className="w-3.5 h-3.5 text-text-muted" />
+          <div className="flex items-center gap-2">
+            {totalTokens > 0 && (
+              <span className="text-[10px] font-mono text-text-muted">
+                {(totalTokens / 1000).toFixed(1)}k tokens
+              </span>
+            )}
+            <Activity className="w-3.5 h-3.5 text-text-muted" />
+          </div>
         </CardHeader>
         <div className="space-y-1.5">
           <AnimatePresence>
-            {modelEvents.slice(-5).reverse().map((e, i) => (
-              <motion.div
-                key={`${e.phase}-${e.step}-${e.task}-${i}`}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${i === 0 && status === "running" ? "bg-accent/8 border border-accent/20" : "bg-white/2"}`}
-              >
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${i === 0 && status === "running" ? "bg-accent animate-pulse" : "bg-text-muted"}`} />
-                <span className="font-mono text-text-primary font-medium">{e.model}</span>
-                <span className="text-text-muted">·</span>
-                <span className={`text-text-muted ${i === 0 && status === "running" ? "text-accent" : ""}`}>{e.task?.replace(/_/g, " ")}</span>
-              </motion.div>
-            ))}
+            {modelEvents.slice(-6).reverse().map((e, i) => {
+              const tier = TASK_TIER[e.task ?? ""] ?? "balanced";
+              const tierColor = TIER_COLOR[tier];
+              const isActive = i === 0 && status === "running";
+              return (
+                <motion.div
+                  key={`${e.phase}-${e.step}-${e.task}-${i}`}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${isActive ? "bg-accent/8 border border-accent/20" : "bg-white/2"}`}
+                >
+                  {/* Cost tier dot */}
+                  <div
+                    className={`w-2 h-2 rounded-full flex-shrink-0 ${isActive ? "animate-pulse" : ""}`}
+                    style={{ background: tierColor }}
+                    title={`${TIER_LABEL[tier]} tier`}
+                  />
+                  <span className="font-mono text-text-primary font-medium truncate flex-1">{e.model}</span>
+                  <span className={`text-text-muted truncate ${isActive ? "text-accent" : ""}`}>
+                    {e.task?.replace(/_/g, " ")}
+                  </span>
+                  {e.tokens && e.tokens > 0 && (
+                    <span className="text-[10px] font-mono text-text-muted flex-shrink-0">
+                      {e.tokens.toLocaleString()}
+                    </span>
+                  )}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
           {modelEvents.length === 0 && (
             <p className="text-xs text-text-muted text-center py-4">No activity yet</p>
           )}
+          {/* Tier legend */}
+          <div className="flex items-center gap-3 pt-2 border-t border-border mt-1">
+            {(["fast", "balanced", "premium"] as const).map((tier) => (
+              <div key={tier} className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ background: TIER_COLOR[tier] }} />
+                <span className="text-[10px] text-text-muted">{TIER_LABEL[tier]}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </Card>
 
