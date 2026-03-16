@@ -266,7 +266,7 @@ function CredibilityMatrix({ items }: { items: EvidenceItem[] }) {
                   fontSize="5.5"
                   fontFamily="sans-serif"
                 >
-                  {tooltip.source.toUpperCase()}
+                  {tooltip.source.replace(/_/g, " ").toUpperCase()}
                 </text>
                 <text
                   x={ttX + 6}
