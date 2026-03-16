@@ -5,6 +5,17 @@ from backend.models.simulation import AgentPersona, RoundEvent
 from backend.models.evidence import EvidenceItem
 from backend.services.llm_router import llm_call_json_with_usage
 
+DOMAIN_DEBATE_HINTS: dict = {
+    "finance": "Reference specific financial metrics: price targets, P/E ratios, yield spreads, earnings growth rates, GDP forecasts. Cite central bank policy, macro trends, and sector flows.",
+    "technology": "Reference adoption curves, benchmark performance, developer ecosystem size, API pricing, regulatory timelines. Cite specific product launches or technical limitations.",
+    "politics": "Reference polling averages, electoral history, legislative vote counts, approval ratings. Cite specific policy positions, coalitions, and historical precedents.",
+    "science": "Reference study sample sizes, confidence intervals, replication rates, funding levels. Cite specific journals, clinical trial phases, or peer review status.",
+    "sports": "Reference win rates, player statistics, injury reports, salary caps, coaching records. Cite head-to-head matchup history and current form.",
+    "crypto": "Reference on-chain metrics, TVL, trading volumes, network hash rates, regulatory filings. Cite specific protocol upgrades or security audits.",
+    "climate": "Reference temperature anomalies, CO2 ppm levels, IPCC scenario ranges, renewable capacity additions. Cite specific policy mechanisms and carbon pricing.",
+    "general": "Reference specific data points, historical precedents, and causal mechanisms. Avoid vague assertions.",
+}
+
 DOMAIN_PERSONA_HINTS: dict = {
     "finance": "Include personas such as: hedge fund manager, retail investor, central bank analyst, macro economist, bearish short-seller, fintech entrepreneur, pension fund manager.",
     "technology": "Include personas such as: software engineer, venture capitalist, AI researcher, tech policy regulator, enterprise CTO, open-source maintainer, tech journalist.",
@@ -73,6 +84,7 @@ async def _run_pair(
     topic: str,
     prior_claims: list[str] | None = None,
     evidence_snippets: list[str] | None = None,
+    domain: str = "general",
 ) -> tuple:
     """Run a single pair interaction; returns (RoundEvent, result_dict, tokens)."""
     prior_context = ""
@@ -89,9 +101,10 @@ async def _run_pair(
     a1_beliefs = agent1.beliefs[-3:] if agent1.beliefs else agent1.beliefs
     a2_beliefs = agent2.beliefs[-3:] if agent2.beliefs else agent2.beliefs
 
+    domain_hint = DOMAIN_DEBATE_HINTS.get(domain, DOMAIN_DEBATE_HINTS["general"])
     result, tokens = await llm_call_json_with_usage(
         "simulation_round",
-        system_prompt="You are simulating a debate between expert agents analyzing a prediction topic. Make statements specific, grounded in mechanisms and data, not vague assertions.",
+        system_prompt=f"You are simulating a debate between expert agents analyzing a prediction topic. Make statements specific, grounded in mechanisms and data, not vague assertions. {domain_hint}",
         user_prompt=f"""Round {round_num}. Topic: {topic}
 {prior_context}{evidence_context}
 Agent 1: {agent1.name} ({agent1.role})
@@ -144,6 +157,7 @@ async def run_simulation_round(
     on_event: Callable[[dict], Awaitable[None]] = None,
     prior_claims: list[str] | None = None,
     evidence_snippets: list[str] | None = None,
+    domain: str = "general",
 ) -> tuple:
     shuffled = agents[:]
     random.shuffle(shuffled)
@@ -157,7 +171,7 @@ async def run_simulation_round(
 
     # Run all pairs in this round in parallel, sharing prior round context
     pair_results = await asyncio.gather(
-        *[_run_pair(round_num, a1, a2, topic, prior_claims, evidence_snippets) for a1, a2 in pairs],
+        *[_run_pair(round_num, a1, a2, topic, prior_claims, evidence_snippets, domain) for a1, a2 in pairs],
         return_exceptions=True,
     )
 
@@ -227,6 +241,7 @@ async def run_full_simulation(
             r, agents, topic, on_event,
             prior_claims=accumulated_claims[-8:] if accumulated_claims else None,
             evidence_snippets=ev_snippets if r == 1 else None,
+            domain=domain,
         )
         all_rounds.extend(round_events)
         # Accumulate unique emergent claims for the next round's context
