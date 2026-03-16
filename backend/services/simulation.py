@@ -76,8 +76,12 @@ async def _run_pair(
     """Run a single pair interaction; returns (RoundEvent, result_dict, tokens)."""
     prior_context = ""
     if prior_claims and round_num > 1:
-        top_claims = prior_claims[:4]
+        top_claims = prior_claims[:6]
         prior_context = f"\nClaims that emerged in prior rounds:\n" + "\n".join(f"- {c}" for c in top_claims) + "\n"
+
+    # Show the most recent 3 beliefs so evolved thinking carries through rounds
+    a1_beliefs = agent1.beliefs[-3:] if agent1.beliefs else agent1.beliefs
+    a2_beliefs = agent2.beliefs[-3:] if agent2.beliefs else agent2.beliefs
 
     result, tokens = await llm_call_json_with_usage(
         "simulation_round",
@@ -85,11 +89,11 @@ async def _run_pair(
         user_prompt=f"""Round {round_num}. Topic: {topic}
 {prior_context}
 Agent 1: {agent1.name} ({agent1.role})
-Beliefs: {'; '.join(agent1.beliefs[:3])}
+Beliefs: {'; '.join(a1_beliefs)}
 Bias: {agent1.behavioral_bias}
 
 Agent 2: {agent2.name} ({agent2.role})
-Beliefs: {'; '.join(agent2.beliefs[:3])}
+Beliefs: {'; '.join(a2_beliefs)}
 Bias: {agent2.behavioral_bias}
 
 Generate their interaction and belief updates. Write the agent statements as direct first-person quotes — natural, specific, and grounded in their beliefs and bias. If prior claims exist, agents should react to them (agree, challenge, or build on them).
