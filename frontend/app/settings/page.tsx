@@ -150,8 +150,7 @@ export default function SettingsPage() {
             <Key className="w-3.5 h-3.5 text-text-muted" />
           </CardHeader>
           <p className="text-xs text-text-secondary mb-4">
-            Keyless sources (ArXiv, HN, Reddit) work without any keys. Add
-            premium keys to unlock additional evidence sources.
+            Keyless sources (ArXiv, HN, Reddit, Google News, Wikipedia) work without any keys. Add premium keys to unlock additional evidence sources.
           </p>
           <div className="space-y-3">
             <div>
@@ -184,7 +183,10 @@ export default function SettingsPage() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-medium">Alpha Vantage</span>
+                <div>
+                  <span className="text-xs font-medium">Alpha Vantage</span>
+                  <p className="text-[10px] text-text-muted mt-0.5">Financial news &amp; sentiment (finance/crypto domains)</p>
+                </div>
                 <Badge variant={alphaVantageKey ? "success" : "muted"}>
                   {alphaVantageKey ? "Active" : "Not set"}
                 </Badge>
