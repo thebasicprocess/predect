@@ -38,8 +38,9 @@ function PredictPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const viewId = searchParams.get("view");
+  const queryParam = searchParams.get("query");
 
-  const [query, setQueryLocal] = useState("");
+  const [query, setQueryLocal] = useState(queryParam ? decodeURIComponent(queryParam) : "");
   const [domain, setDomain] = useState("general");
   const [timeHorizon, setTimeHorizon] = useState("6 months");
   const [activeTab, setActiveTab] = useState<Tab>("configure");

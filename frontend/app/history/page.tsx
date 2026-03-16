@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getPredictionHistory, deletePrediction } from "@/lib/api";
 import { getConfidenceColor, formatConfidence } from "@/lib/utils";
-import { History, Clock, BrainCircuit, BarChart2, CheckCircle2, Target, Trash2, Search, X } from "lucide-react";
+import { History, Clock, BrainCircuit, BarChart2, CheckCircle2, Target, Trash2, Search, X, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 interface HistoryItem {
@@ -688,21 +688,33 @@ export default function HistoryPage() {
                             </p>
                           </div>
 
-                          {/* Confidence arc + delete */}
+                          {/* Confidence arc + actions */}
                           <div className="flex-shrink-0 flex flex-col items-end gap-2 pt-0.5">
                             {p.confidence != null ? (
                               <ConfidenceArc score={p.confidence} />
                             ) : (
                               <span className="text-xs text-text-muted font-mono w-10 text-center">—</span>
                             )}
-                            <button
-                              onClick={(e) => handleDelete(e, p.id)}
-                              disabled={deletingId === p.id}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-danger/15 hover:text-danger text-text-muted disabled:opacity-30"
-                              title="Delete prediction"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/predict?query=${encodeURIComponent(p.query)}`);
+                                }}
+                                className="p-1.5 rounded-md hover:bg-accent/15 hover:text-accent text-text-muted"
+                                title="Re-run this prediction"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => handleDelete(e, p.id)}
+                                disabled={deletingId === p.id}
+                                className="p-1.5 rounded-md hover:bg-danger/15 hover:text-danger text-text-muted disabled:opacity-30"
+                                title="Delete prediction"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </Card>
