@@ -235,20 +235,23 @@ async def run_full_simulation(
             ev_snippets.append(f"[{item.source}] {item.title}: {snippet}")
 
     all_rounds = []
-    accumulated_claims: list[str] = []
+    claim_freq: dict[str, int] = {}  # track how often each claim recurs across rounds
     for r in range(1, rounds + 1):
+        # Pass top-8 claims sorted by frequency so agents address the most contested topics
+        top_prior_claims: list[str] | None = None
+        if claim_freq:
+            top_prior_claims = sorted(claim_freq.keys(), key=lambda c: claim_freq[c], reverse=True)[:8]
         round_events, agents = await run_simulation_round(
             r, agents, topic, on_event,
-            prior_claims=accumulated_claims[-8:] if accumulated_claims else None,
+            prior_claims=top_prior_claims,
             evidence_snippets=ev_snippets if r == 1 else None,
             domain=domain,
         )
         all_rounds.extend(round_events)
-        # Accumulate unique emergent claims for the next round's context
+        # Track claim frequency across all rounds (count duplicates)
         for ev in round_events:
             for claim in ev.emergent_claims:
-                if claim not in accumulated_claims:
-                    accumulated_claims.append(claim)
+                claim_freq[claim] = claim_freq.get(claim, 0) + 1
 
     # Emit final agent state so frontend has updated beliefs from all simulation rounds
     if on_event:
