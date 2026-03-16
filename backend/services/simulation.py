@@ -50,24 +50,17 @@ Make agents diverse: experts, skeptics, optimists, domain insiders, public voice
     return agents, tokens
 
 
-async def run_simulation_round(
+async def _run_pair(
     round_num: int,
-    agents: List[AgentPersona],
+    agent1: AgentPersona,
+    agent2: AgentPersona,
     topic: str,
-    on_event: Callable[[dict], Awaitable[None]] = None,
 ) -> tuple:
-    shuffled = agents[:]
-    random.shuffle(shuffled)
-    pairs = [(shuffled[i], shuffled[i+1]) for i in range(0, len(shuffled)-1, 2)]
-
-    events = []
-    updated_agents = {a.id: a for a in agents}
-
-    for agent1, agent2 in pairs:
-        result, tokens = await llm_call_json_with_usage(
-            "simulation_round",
-            system_prompt="You are simulating a conversation between two agents analyzing a prediction topic.",
-            user_prompt=f"""Round {round_num}. Topic: {topic}
+    """Run a single pair interaction; returns (RoundEvent, result_dict, tokens)."""
+    result, tokens = await llm_call_json_with_usage(
+        "simulation_round",
+        system_prompt="You are simulating a conversation between two agents analyzing a prediction topic.",
+        user_prompt=f"""Round {round_num}. Topic: {topic}
 
 Agent 1: {agent1.name} ({agent1.role})
 Beliefs: {'; '.join(agent1.beliefs[:3])}
@@ -87,19 +80,45 @@ Return JSON: {{
   "agent1_belief_update": "new belief to add",
   "agent2_belief_update": "new belief to add"
 }}"""
-        )
+    )
+    event = RoundEvent(
+        round=round_num,
+        agent1_id=agent1.id,
+        agent2_id=agent2.id,
+        agent1_name=agent1.name,
+        agent2_name=agent2.name,
+        interaction_summary=result.get("interaction_summary", ""),
+        emergent_claims=result.get("emergent_claims", []),
+        agent1_statement=result.get("agent1_statement") or None,
+        agent2_statement=result.get("agent2_statement") or None,
+    )
+    return event, result, tokens
 
-        event = RoundEvent(
-            round=round_num,
-            agent1_id=agent1.id,
-            agent2_id=agent2.id,
-            agent1_name=agent1.name,
-            agent2_name=agent2.name,
-            interaction_summary=result.get("interaction_summary", ""),
-            emergent_claims=result.get("emergent_claims", []),
-            agent1_statement=result.get("agent1_statement") or None,
-            agent2_statement=result.get("agent2_statement") or None,
-        )
+
+async def run_simulation_round(
+    round_num: int,
+    agents: List[AgentPersona],
+    topic: str,
+    on_event: Callable[[dict], Awaitable[None]] = None,
+) -> tuple:
+    shuffled = agents[:]
+    random.shuffle(shuffled)
+    pairs = [(shuffled[i], shuffled[i+1]) for i in range(0, len(shuffled)-1, 2)]
+
+    updated_agents = {a.id: a for a in agents}
+
+    # Run all pairs in this round in parallel
+    pair_results = await asyncio.gather(
+        *[_run_pair(round_num, a1, a2, topic) for a1, a2 in pairs],
+        return_exceptions=True,
+    )
+
+    events = []
+    for (agent1, agent2), outcome in zip(pairs, pair_results):
+        if isinstance(outcome, Exception):
+            continue  # skip failed pairs
+
+        event, result, tokens = outcome
         events.append(event)
 
         if result.get("agent1_belief_update"):
