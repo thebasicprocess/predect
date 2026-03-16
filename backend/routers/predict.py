@@ -1,7 +1,10 @@
 import json
 import uuid
 import asyncio
+import logging
 from fastapi import APIRouter, Request
+
+logger = logging.getLogger(__name__)
 from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
 from backend.models.prediction import PredictRequest, PredictionRecord
@@ -181,6 +184,9 @@ Types: Person (named individual), Organization (company/gov/group), Event (incid
             )
 
     except Exception as e:
+        import traceback
+        logger.error(f"Pipeline failed for {prediction_id}: {e}\n{traceback.format_exc()}")
+        print(f"[PIPELINE ERROR] {prediction_id}: {e}\n{traceback.format_exc()}", flush=True)
         await emit({"phase": "error", "step": -1, "message": str(e)})
         with conn:
             conn.execute("UPDATE predictions SET status = ? WHERE id = ?", ("failed", prediction_id))
