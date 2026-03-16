@@ -10,6 +10,7 @@ from backend.services.evidence_collector import collect_evidence
 from backend.services.simulation import run_full_simulation
 from backend.services.report_generator import generate_report
 from backend.services.graph_service import get_or_create_node, create_edge, register_node_for_prediction
+from backend.services.llm_router import llm_call_json_with_usage
 
 router = APIRouter()
 
@@ -58,17 +59,75 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
         pred_node = get_or_create_node("Prediction", request.query[:100])
         register_node_for_prediction(prediction_id, pred_node.id)
 
+        # Collect raw entities from evidence
         entity_names = set()
         for item in evidence_items:
             for entity in item.entities[:3]:
                 entity_names.add(entity)
 
-        for entity in list(entity_names)[:20]:
-            entity_node = get_or_create_node("Concept", entity)
-            register_node_for_prediction(prediction_id, entity_node.id)
-            create_edge(pred_node.id, entity_node.id, "RELATES_TO", weight=0.8)
+        entity_list = list(entity_names)[:25]
 
-        await emit({"phase": "graph", "step": 2, "totalSteps": 6, "message": f"Graph updated with {len(entity_names)} entities"})
+        # Use LLM to classify entities into typed nodes with relationships
+        graph_result = {"entities": []}
+        if entity_list:
+            try:
+                graph_result, _ = await llm_call_json_with_usage(
+                    "graph_construction",
+                    system_prompt="You are a knowledge graph builder. Classify entities into typed nodes and identify relationships. Output valid JSON only.",
+                    user_prompt=f"""Query: {request.query}
+Entities found in evidence: {', '.join(entity_list)}
+
+Classify each entity and identify relationships between them.
+
+Return JSON:
+{{
+  "entities": [
+    {{"name": "Entity Name", "type": "Person|Organization|Event|Location|Concept", "relationship_to_query": "INVOLVES|AFFECTS|CAUSES|MENTIONS|RELATES_TO"}}
+  ],
+  "entity_edges": [
+    {{"source": "Entity A", "target": "Entity B", "relationship": "AFFILIATED_WITH|CAUSES|SUPPORTS|OPPOSES|LOCATED_IN|PART_OF"}}
+  ]
+}}
+
+Types: Person (named individual), Organization (company/gov/group), Event (incident/happening), Location (place/region), Concept (idea/term/trend)""",
+                )
+            except Exception:
+                graph_result = {"entities": [{"name": e, "type": "Concept", "relationship_to_query": "RELATES_TO"} for e in entity_list]}
+
+        classified = graph_result.get("entities", [])
+        entity_edges = graph_result.get("entity_edges", [])
+
+        # Fallback if LLM returned nothing
+        if not classified:
+            classified = [{"name": e, "type": "Concept", "relationship_to_query": "RELATES_TO"} for e in entity_list]
+
+        # Create entity nodes
+        node_name_map: dict = {}
+        for entry in classified[:20]:
+            name = entry.get("name", "")
+            etype = entry.get("type", "Concept")
+            rel = entry.get("relationship_to_query", "RELATES_TO")
+            if not name:
+                continue
+            if etype not in ("Person", "Organization", "Event", "Location", "Concept", "Prediction"):
+                etype = "Concept"
+            entity_node = get_or_create_node(etype, name)
+            register_node_for_prediction(prediction_id, entity_node.id)
+            create_edge(pred_node.id, entity_node.id, rel, weight=0.8)
+            node_name_map[name] = entity_node.id
+
+        # Create entity-to-entity edges
+        for ee in entity_edges[:15]:
+            src_name = ee.get("source", "")
+            tgt_name = ee.get("target", "")
+            rel = ee.get("relationship", "RELATES_TO")
+            if src_name in node_name_map and tgt_name in node_name_map:
+                try:
+                    create_edge(node_name_map[src_name], node_name_map[tgt_name], rel, weight=0.6)
+                except Exception:
+                    pass
+
+        await emit({"phase": "graph", "step": 2, "totalSteps": 6, "message": f"Graph built with {len(classified)} classified entities", "model": "glm-4.5", "task": "graph_construction"})
 
         await emit({"phase": "agents", "step": 3, "totalSteps": 6, "message": "Generating agent personas...", "model": "glm-4.5-air", "task": "persona_generation"})
 
