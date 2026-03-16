@@ -51,6 +51,8 @@ class PredictionReport(BaseModel):
     dominantNarratives: List[str]
     predictedEvents: List[PredictedEvent] = []
     narrativeCamps: List[NarrativeCamp] = []
+    strongest_counter_argument: str = ""
+    wildcard_factor: str = ""
 
 
 class PredictRequest(BaseModel):

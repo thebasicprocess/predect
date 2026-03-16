@@ -140,13 +140,16 @@ Generate a comprehensive prediction report as JSON:
   "timelineOutlook": [
     {tl_example}
   ],
-  "dominantNarratives": ["narrative1", "narrative2", "narrative3"]
+  "dominantNarratives": ["narrative1", "narrative2", "narrative3"],
+  "strongest_counter_argument": "The single most compelling argument AGAINST the headline prediction (1-2 sentences, cite specific evidence or mechanism)",
+  "wildcard_factor": "The biggest unknown that could completely invalidate the prediction — an event, data point, or factor not yet in evidence (1 sentence)"
 }}
 
 Rules:
 - scenario probabilities must sum to 1.0
 - confidence_score MUST be a float, not 0.0 (use the calibration guide above)
-- keyDrivers and riskFactors must be specific to the query, not generic"""
+- keyDrivers and riskFactors must be specific to the query, not generic
+- strongest_counter_argument must genuinely challenge the main prediction, not a weak strawman"""
     )
 
     # Second call: dedicated predicted events (wrapped in object for reliable json_mode)
@@ -257,5 +260,7 @@ Rules:
         dominantNarratives=result.get("dominantNarratives", []),
         predictedEvents=[PredictedEvent(**e) for e in events_data],
         narrativeCamps=narrative_camps,
+        strongest_counter_argument=result.get("strongest_counter_argument", ""),
+        wildcard_factor=result.get("wildcard_factor", ""),
     )
     return report, tokens1 + tokens2 + tokens3

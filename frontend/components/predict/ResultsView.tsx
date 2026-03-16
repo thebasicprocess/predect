@@ -57,6 +57,8 @@ interface PredictionResult {
     category: string;
   }>;
   narrativeCamps?: NarrativeCamp[];
+  strongest_counter_argument?: string;
+  wildcard_factor?: string;
 }
 
 
@@ -596,6 +598,30 @@ export function ResultsView() {
                   </div>
                 );
               })}
+            </div>
+          </Card>
+        )}
+
+        {/* Devil's Advocate card — counter-argument and wildcard */}
+        {activeTab === "report" && (report.strongest_counter_argument || report.wildcard_factor) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Devil&apos;s Advocate</CardTitle>
+              <AlertTriangle className="w-3.5 h-3.5 text-warning" />
+            </CardHeader>
+            <div className="space-y-3">
+              {report.strongest_counter_argument && (
+                <div>
+                  <p className="text-[10px] font-semibold text-warning mb-1 uppercase tracking-wide">Strongest Counter-Argument</p>
+                  <p className="text-xs text-text-secondary leading-relaxed">{report.strongest_counter_argument}</p>
+                </div>
+              )}
+              {report.wildcard_factor && (
+                <div>
+                  <p className="text-[10px] font-semibold text-text-muted mb-1 uppercase tracking-wide">Wildcard Factor</p>
+                  <p className="text-xs text-text-secondary leading-relaxed">{report.wildcard_factor}</p>
+                </div>
+              )}
             </div>
           </Card>
         )}

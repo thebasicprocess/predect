@@ -85,27 +85,32 @@ async def _run_pair(
 
     result, tokens = await llm_call_json_with_usage(
         "simulation_round",
-        system_prompt="You are simulating a conversation between two agents analyzing a prediction topic.",
+        system_prompt="You are simulating a debate between expert agents analyzing a prediction topic. Make statements specific, grounded in mechanisms and data, not vague assertions.",
         user_prompt=f"""Round {round_num}. Topic: {topic}
 {prior_context}
 Agent 1: {agent1.name} ({agent1.role})
-Beliefs: {'; '.join(a1_beliefs)}
+Current beliefs: {'; '.join(a1_beliefs)}
 Bias: {agent1.behavioral_bias}
 
 Agent 2: {agent2.name} ({agent2.role})
-Beliefs: {'; '.join(a2_beliefs)}
+Current beliefs: {'; '.join(a2_beliefs)}
 Bias: {agent2.behavioral_bias}
 
-Generate their interaction and belief updates. Write the agent statements as direct first-person quotes — natural, specific, and grounded in their beliefs and bias. If prior claims exist, agents should react to them (agree, challenge, or build on them).
+Simulate their debate. Statements must be specific and grounded in mechanisms, data, or causal logic — not vague assertions. If prior claims exist, agents must react to them specifically.
 
 Return JSON: {{
-  "interaction_summary": "2-3 sentence summary of the debate",
-  "agent1_statement": "Direct quote from Agent 1 making their key point (1-2 sentences, first person)",
-  "agent2_statement": "Direct quote from Agent 2 responding with their view (1-2 sentences, first person)",
-  "emergent_claims": ["claim1", "claim2"],
-  "agent1_belief_update": "new belief to add",
-  "agent2_belief_update": "new belief to add"
-}}"""
+  "interaction_summary": "2-3 sentence summary",
+  "key_disagreement": "Core point of contention in one sentence",
+  "agent1_statement": "Direct first-person quote from Agent 1 making a specific, mechanistic argument (1-2 sentences)",
+  "agent2_statement": "Direct first-person quote from Agent 2 responding with a specific counterpoint (1-2 sentences)",
+  "emergent_claims": ["Specific falsifiable claim 1", "Specific falsifiable claim 2"],
+  "agent1_belief_update": "new concrete belief grounded in this exchange",
+  "agent2_belief_update": "new concrete belief grounded in this exchange",
+  "agent1_conviction_change": 0.0,
+  "agent2_conviction_change": 0.0
+}}
+
+agent1_conviction_change and agent2_conviction_change must be floats from -0.3 to 0.3 (positive = more confident after the exchange, negative = less confident)."""
     )
     event = RoundEvent(
         round=round_num,
@@ -117,6 +122,11 @@ Return JSON: {{
         emergent_claims=result.get("emergent_claims", []),
         agent1_statement=result.get("agent1_statement") or None,
         agent2_statement=result.get("agent2_statement") or None,
+        key_disagreement=result.get("key_disagreement") or None,
+        belief_shifts={
+            agent1.id: result.get("agent1_conviction_change", 0.0),
+            agent2.id: result.get("agent2_conviction_change", 0.0),
+        },
     )
     return event, result, tokens
 

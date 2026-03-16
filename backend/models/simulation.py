@@ -22,6 +22,7 @@ class RoundEvent(BaseModel):
     belief_shifts: Dict[str, Any] = {}
     agent1_statement: Optional[str] = None
     agent2_statement: Optional[str] = None
+    key_disagreement: Optional[str] = None
 
 
 class SimulationState(BaseModel):
