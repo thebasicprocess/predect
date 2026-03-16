@@ -54,6 +54,7 @@ function formatDuration(s: number): string {
 export function PipelinePanel() {
   const { status, events, progress, currentPhase } = usePredictionStore();
   const { elapsed, finalElapsed } = useElapsedTime(status === "running");
+  const totalTokens = events.filter(e => e.tokens && e.tokens > 0).reduce((sum, e) => sum + (e.tokens ?? 0), 0);
 
   if (status === "idle") return null;
 
@@ -83,21 +84,28 @@ export function PipelinePanel() {
             </span>
           )}
         </div>
-        <Badge
-          variant={
-            status === "complete"
-              ? "success"
-              : status === "error"
-              ? "danger"
-              : "accent"
-          }
-        >
+        <div className="flex items-center gap-2">
+          {status === "complete" && totalTokens > 0 && (
+            <span className="text-[10px] font-mono text-text-muted">
+              {(totalTokens / 1000).toFixed(1)}k tokens
+            </span>
+          )}
+          <Badge
+            variant={
+              status === "complete"
+                ? "success"
+                : status === "error"
+                ? "danger"
+                : "accent"
+            }
+          >
           {status === "running"
             ? "Running"
             : status === "complete"
             ? "Complete"
             : "Error"}
-        </Badge>
+          </Badge>
+        </div>
       </div>
 
       <Progress value={progress} showLabel className="mb-4" />
