@@ -11,7 +11,7 @@ import {
 } from "@/components/graph/GraphCanvas";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getGraphNodes, getGraphEdges, getGraphStats } from "@/lib/api";
+import { getGraphNodes, getGraphEdges, getGraphStats, getNodePredictions } from "@/lib/api";
 import {
   Network,
   BarChart3,
@@ -163,6 +163,14 @@ function GraphPageInner() {
   const mostCentral = topNodes[0] ?? null;
   const mostCommonRel = relFreqMap[0] ?? null;
   const avgDegree = nodes.length > 0 ? (edges.length * 2 / nodes.length).toFixed(1) : "0";
+
+  // Fetch predictions that reference the selected node
+  const { data: nodePredictions = [] } = useQuery({
+    queryKey: ["node-predictions", selected?.id],
+    queryFn: () => getNodePredictions(selected!.id),
+    enabled: !!selected,
+    staleTime: 30_000,
+  });
 
   // State for toggling connection section direction filter
   const [connFilter, setConnFilter] = useState<"all" | "out" | "in">("all");
@@ -523,6 +531,49 @@ function GraphPageInner() {
                               </div>
                               <span className="text-[9px] font-mono text-text-muted w-4 text-right">{count}</span>
                             </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Predictions that reference this node */}
+                  {nodePredictions.length > 0 && (
+                    <div>
+                      <div className="text-[10px] text-text-muted mb-1.5 font-medium uppercase tracking-wide">
+                        Appears in {nodePredictions.length} prediction{nodePredictions.length !== 1 ? "s" : ""}
+                      </div>
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                        {nodePredictions.slice(0, 6).map((pred) => {
+                          const confColor =
+                            pred.confidence != null && pred.confidence >= 0.7
+                              ? "#10B981"
+                              : pred.confidence != null && pred.confidence >= 0.45
+                              ? "#F59E0B"
+                              : "#EF4444";
+                          return (
+                            <button
+                              key={pred.id}
+                              onClick={() => router.push(`/predict?view=${pred.id}`)}
+                              className="w-full text-left bg-white/4 hover:bg-white/8 rounded-lg px-2.5 py-2 transition-colors group"
+                            >
+                              <p className="text-[11px] text-text-secondary group-hover:text-text-primary transition-colors line-clamp-2 leading-snug">
+                                {pred.headline ?? pred.query}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {pred.confidence != null && (
+                                  <span className="text-[9px] font-mono" style={{ color: confColor }}>
+                                    {Math.round(pred.confidence * 100)}%
+                                  </span>
+                                )}
+                                {pred.domain && (
+                                  <span className="text-[9px] font-mono text-text-muted capitalize">{pred.domain}</span>
+                                )}
+                                <span className="text-[9px] text-text-muted ml-auto">
+                                  {new Date(pred.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                </span>
+                              </div>
+                            </button>
                           );
                         })}
                       </div>

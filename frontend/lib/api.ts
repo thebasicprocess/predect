@@ -126,6 +126,21 @@ export async function getGraphStats() {
   return res.json();
 }
 
+export async function getNodePredictions(nodeId: string): Promise<Array<{
+  id: string;
+  query: string;
+  domain: string | null;
+  time_horizon: string | null;
+  status: string;
+  confidence: number | null;
+  headline: string | null;
+  created_at: string;
+}>> {
+  const res = await fetch(`${API_URL}/api/graph/node/${nodeId}/predictions`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function checkHealth() {
   try {
     const res = await fetch(`${API_URL}/api/health`);

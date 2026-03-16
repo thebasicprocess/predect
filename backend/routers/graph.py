@@ -38,6 +38,37 @@ async def get_node(node_id: str):
     }
 
 
+@router.get("/node/{node_id}/predictions")
+async def node_predictions(node_id: str):
+    """Return the predictions that reference this node, ordered most recent first."""
+    conn = get_connection()
+    rows = conn.execute(
+        """SELECT p.id, p.query, p.domain, p.time_horizon, p.status, p.confidence, p.created_at,
+                  p.result
+           FROM predictions p
+           JOIN prediction_node_map m ON p.id = m.prediction_id
+           WHERE m.node_id = ?
+           ORDER BY p.created_at DESC
+           LIMIT 20""",
+        (node_id,),
+    ).fetchall()
+    conn.close()
+    results = []
+    for row in rows:
+        result = json.loads(row["result"]) if row["result"] else None
+        results.append({
+            "id": row["id"],
+            "query": row["query"],
+            "domain": row["domain"],
+            "time_horizon": row["time_horizon"],
+            "status": row["status"],
+            "confidence": row["confidence"],
+            "headline": result.get("headline") if result else None,
+            "created_at": row["created_at"],
+        })
+    return results
+
+
 @router.get("/stats")
 async def stats():
     return get_graph_stats().model_dump()
