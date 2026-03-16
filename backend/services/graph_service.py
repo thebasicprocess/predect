@@ -37,6 +37,22 @@ def get_or_create_node(type: str, name: str) -> Node:
 
 def create_edge(source_id: str, target_id: str, relationship: str, weight: float = 1.0) -> Edge:
     conn = get_connection()
+    # Return existing edge if the same relationship already exists
+    row = conn.execute(
+        "SELECT * FROM edges WHERE source_id = ? AND target_id = ? AND relationship = ?",
+        (source_id, target_id, relationship),
+    ).fetchone()
+    if row:
+        conn.close()
+        return Edge(
+            id=row["id"],
+            source_id=row["source_id"],
+            target_id=row["target_id"],
+            relationship=row["relationship"],
+            weight=row["weight"],
+            properties=json.loads(row["properties"] or "{}"),
+            created_at=row["created_at"],
+        )
     edge_id = str(uuid.uuid4())
     with conn:
         conn.execute(

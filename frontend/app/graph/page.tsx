@@ -47,8 +47,8 @@ function GraphPageInner() {
   const predictionId = searchParams.get("prediction_id") ?? undefined;
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  // Set of node types that are currently hidden (toggled off)
-  const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
+  // Set of node types that are active (additive filter — empty = show all)
+  const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
 
   const graphRef = useRef<GraphCanvasHandle>(null);
 
@@ -65,30 +65,53 @@ function GraphPageInner() {
     queryFn: () => getGraphStats(),
   });
 
+  // Derive hiddenTypes from typeFilter (canvas uses subtractive approach)
+  const hiddenTypes = useMemo<Set<string>>(() => {
+    if (typeFilter.size === 0) return new Set();
+    return new Set(NODE_TYPES.filter((t) => !typeFilter.has(t)));
+  }, [typeFilter]);
+
+  // Types that actually appear in the loaded data
+  const presentTypes = useMemo(
+    () => Array.from(new Set(nodes.map((n: GraphNode) => n.type))).sort(),
+    [nodes]
+  );
+
+  // Visible node ids based on type filter
+  const visibleNodeIds = useMemo(() => {
+    if (typeFilter.size === 0) return new Set(nodes.map((n: GraphNode) => n.id));
+    return new Set(
+      nodes.filter((n: GraphNode) => typeFilter.has(n.type)).map((n: GraphNode) => n.id)
+    );
+  }, [nodes, typeFilter]);
+
+  // Filtered node/edge arrays (used for sidebar counts)
+  const filteredNodes = useMemo(
+    () => (typeFilter.size === 0 ? nodes : nodes.filter((n: GraphNode) => typeFilter.has(n.type))),
+    [nodes, typeFilter]
+  );
+  const filteredEdges = useMemo(
+    () =>
+      typeFilter.size === 0
+        ? edges
+        : edges.filter(
+            (e: GraphEdge) => visibleNodeIds.has(e.source_id) && visibleNodeIds.has(e.target_id)
+          ),
+    [edges, visibleNodeIds, typeFilter]
+  );
+
   // Search filtering
-  const filteredNodes: GraphNode[] =
+  const searchFilteredNodes: GraphNode[] =
     searchTerm.trim().length > 0
       ? (nodes as GraphNode[]).filter((n: GraphNode) =>
           n.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
       : [];
 
-  const highlightNodes = new Set(filteredNodes.map((n) => n.id));
+  const highlightNodes = new Set(searchFilteredNodes.map((n) => n.id));
 
   const handleNodeSelect = (n: GraphNode | null) => {
     setSelected(n);
-  };
-
-  const toggleType = (type: string) => {
-    setHiddenTypes((prev) => {
-      const next = new Set(prev);
-      if (next.has(type)) {
-        next.delete(type);
-      } else {
-        next.add(type);
-      }
-      return next;
-    });
   };
 
   // All edges connected to the selected node
@@ -186,7 +209,9 @@ function GraphPageInner() {
             Knowledge Graph
           </Badge>
           <Badge variant="muted">
-            {nodes.length} nodes · {edges.length} edges
+            {typeFilter.size > 0
+              ? `${filteredNodes.length} / ${nodes.length} nodes · ${filteredEdges.length} edges`
+              : `${nodes.length} nodes · ${edges.length} edges`}
           </Badge>
           {predictionId && (
             <Badge variant="muted">#{predictionId.slice(0, 8)}</Badge>
@@ -234,9 +259,9 @@ function GraphPageInner() {
             placeholder="Search nodes..."
             className="w-full bg-white/4 border border-border rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
           />
-          {filteredNodes.length > 0 && (
+          {searchFilteredNodes.length > 0 && (
             <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
-              {filteredNodes.slice(0, 5).map((n) => (
+              {searchFilteredNodes.slice(0, 5).map((n) => (
                 <button
                   key={n.id}
                   onClick={() => handleNodeSelect(n)}
@@ -251,50 +276,59 @@ function GraphPageInner() {
               ))}
             </div>
           )}
-          {searchTerm.trim().length > 0 && filteredNodes.length === 0 && (
+          {searchTerm.trim().length > 0 && searchFilteredNodes.length === 0 && (
             <p className="mt-2 text-xs text-text-muted px-1">No nodes found</p>
           )}
         </div>
 
-        {/* Node type filter pills */}
-        <div>
-          <p className="text-xs text-text-muted mb-2 font-medium uppercase tracking-wide">
-            Filter by type
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {NODE_TYPES.map((type) => {
-              const isActive = !hiddenTypes.has(type);
-              const color = NODE_COLORS[type];
-              return (
+        {/* Node type filter chips */}
+        {presentTypes.length > 1 && (
+          <div className="mb-3">
+            <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">Filter by type</p>
+            <div className="flex flex-wrap gap-1.5">
+              {presentTypes.map((type) => {
+                const color = NODE_COLORS[type] ?? "#635BFF";
+                const active = typeFilter.has(type);
+                const count = nodes.filter((n: GraphNode) => n.type === type).length;
+                return (
+                  <button
+                    key={type}
+                    aria-pressed={active}
+                    onClick={() => {
+                      setTypeFilter((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(type)) next.delete(type);
+                        else next.add(type);
+                        return next;
+                      });
+                    }}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all ${
+                      active
+                        ? "border-current"
+                        : "border-transparent bg-white/5 text-text-muted hover:text-text-secondary"
+                    }`}
+                    style={active ? { color, borderColor: `${color}60`, background: `${color}18` } : {}}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ background: color }}
+                    />
+                    {type}
+                    <span className="opacity-60 font-mono">{count}</span>
+                  </button>
+                );
+              })}
+              {typeFilter.size > 0 && (
                 <button
-                  key={type}
-                  onClick={() => toggleType(type)}
-                  aria-pressed={isActive}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-150 border"
-                  style={
-                    isActive
-                      ? {
-                          background: `${color}22`,
-                          borderColor: `${color}66`,
-                          color,
-                        }
-                      : {
-                          background: "transparent",
-                          borderColor: "rgba(255,255,255,0.08)",
-                          color: "rgba(255,255,255,0.3)",
-                        }
-                  }
+                  onClick={() => setTypeFilter(new Set())}
+                  className="px-2 py-0.5 rounded-full text-[10px] text-text-muted hover:text-text-primary border border-transparent hover:border-border transition-colors"
                 >
-                  <span
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: isActive ? color : "rgba(255,255,255,0.2)" }}
-                  />
-                  {type}
+                  Clear
                 </button>
-              );
-            })}
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Legend */}
         <Card>
