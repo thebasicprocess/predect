@@ -205,6 +205,26 @@ Types: Person (named individual), Organization (company/gov/group), Event (incid
                 (json.dumps([a.model_dump() for a in agents]), json.dumps([r.model_dump() for r in rounds]), "complete", sim_id),
             )
 
+        # Enrich graph with agent nodes and debate edges
+        try:
+            agent_node_map: dict = {}
+            for agent in agents:
+                agent_node = get_or_create_node("Agent", agent.name[:80])
+                register_node_for_prediction(prediction_id, agent_node.id)
+                create_edge(agent_node.id, pred_node.id, "ANALYZES", weight=0.7)
+                agent_node_map[agent.name] = agent_node.id
+
+            # Count how many times each pair debated; stronger pair = higher edge weight
+            debate_counts: dict[tuple[str, str], int] = {}
+            for ev in rounds:
+                key = tuple(sorted([ev.agent1_name, ev.agent2_name]))
+                debate_counts[key] = debate_counts.get(key, 0) + 1  # type: ignore[arg-type]
+            for (n1, n2), count in debate_counts.items():
+                if n1 in agent_node_map and n2 in agent_node_map:
+                    create_edge(agent_node_map[n1], agent_node_map[n2], "DEBATED", weight=round(min(count / 5, 1.0), 2))
+        except Exception as _ae:
+            logger.warning("Agent graph enrichment failed: %s", _ae)
+
         await emit({"phase": "analysis", "step": 5, "totalSteps": 6, "message": "Synthesizing prediction...", "model": "glm-4.7", "task": "prediction_synthesis"})
 
         report, synthesis_tokens = await generate_report(

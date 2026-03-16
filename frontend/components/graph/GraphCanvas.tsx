@@ -38,6 +38,7 @@ const NODE_COLORS: Record<string, string> = {
   KeyDriver: "#22D3EE",
   RiskFactor: "#EF4444",
   Narrative: "#F97316",
+  Agent: "#E879F9",
 };
 
 interface NodePos {
