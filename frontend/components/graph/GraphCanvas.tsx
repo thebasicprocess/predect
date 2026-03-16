@@ -35,6 +35,9 @@ const NODE_COLORS: Record<string, string> = {
   Location: "#60A5FA",
   Concept: "#A78BFA",
   Prediction: "#EC4899",
+  KeyDriver: "#22D3EE",
+  RiskFactor: "#EF4444",
+  Narrative: "#F97316",
 };
 
 interface NodePos {

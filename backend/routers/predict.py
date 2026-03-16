@@ -185,6 +185,26 @@ Types: Person (named individual), Organization (company/gov/group), Event (incid
             on_event=emit,
         )
 
+        # Enrich graph with prediction report insights
+        try:
+            for driver in report.keyDrivers[:5]:
+                if driver:
+                    d_node = get_or_create_node("KeyDriver", driver[:100])
+                    register_node_for_prediction(prediction_id, d_node.id)
+                    create_edge(pred_node.id, d_node.id, "DRIVEN_BY", weight=0.9)
+            for risk in report.riskFactors[:4]:
+                if risk:
+                    r_node = get_or_create_node("RiskFactor", risk[:100])
+                    register_node_for_prediction(prediction_id, r_node.id)
+                    create_edge(pred_node.id, r_node.id, "RISKS", weight=0.85)
+            for camp in (report.narrativeCamps or [])[:4]:
+                if camp.narrative:
+                    n_node = get_or_create_node("Narrative", camp.narrative[:100])
+                    register_node_for_prediction(prediction_id, n_node.id)
+                    create_edge(pred_node.id, n_node.id, "NARRATIVE", weight=round(max(0.1, camp.support_count / 10), 2))
+        except Exception as _ge:
+            logger.warning("Graph enrichment failed: %s", _ge)
+
         await emit({
             "phase": "report",
             "step": 6,
