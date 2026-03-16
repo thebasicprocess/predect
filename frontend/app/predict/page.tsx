@@ -8,9 +8,10 @@ import { ActivityPanel } from "@/components/predict/ActivityPanel";
 import { ResultsView } from "@/components/predict/ResultsView";
 import { usePredictionStore } from "@/lib/stores/predictionStore";
 import { useSettingsStore } from "@/lib/stores/settingsStore";
-import { startPrediction, streamPrediction, getPredictionResult, getPredictionResultFull } from "@/lib/api";
+import { startPrediction, streamPrediction, getPredictionResult, getPredictionResultFull, getPredictionHistory } from "@/lib/api";
 import Link from "next/link";
-import { BrainCircuit, Network, Plus, AlertCircle, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { BrainCircuit, Network, Plus, AlertCircle, RefreshCw, History, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
@@ -22,14 +23,27 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "activity", label: "Activity" },
 ];
 
+interface HistoryItem {
+  id: string;
+  query: string;
+  domain: string;
+  time_horizon: string;
+  status: string;
+  confidence: number | null;
+  headline: string | null;
+  created_at: string;
+}
+
 function PredictPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const viewId = searchParams.get("view");
 
   const [query, setQueryLocal] = useState("");
   const [domain, setDomain] = useState("general");
   const [timeHorizon, setTimeHorizon] = useState("6 months");
   const [activeTab, setActiveTab] = useState<Tab>("configure");
+  const [recentPredictions, setRecentPredictions] = useState<HistoryItem[]>([]);
   const { agentCount, rounds } = useSettingsStore();
 
   const {
@@ -188,6 +202,16 @@ function PredictPageInner() {
     return () => window.removeEventListener("keydown", handler);
   }, [query, status, handleSubmit]);
 
+  // Load recent predictions for the idle state
+  useEffect(() => {
+    getPredictionHistory()
+      .then((data) => {
+        const completed = (data as HistoryItem[]).filter((p) => p.status === "completed").slice(0, 6);
+        setRecentPredictions(completed);
+      })
+      .catch(() => {});
+  }, []);
+
   const handleAddSession = useCallback(() => {
     addSession(query);
     setQueryLocal("");
@@ -294,15 +318,76 @@ function PredictPageInner() {
           {/* Center: Pipeline + Results */}
           <div className="flex-1 overflow-y-auto p-6">
             {status === "idle" && (
-              <div className="h-full flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-6">
-                  <BrainCircuit className="w-10 h-10 text-accent" />
-                </div>
-                <h2 className="text-2xl font-bold mb-2">Ready to predict</h2>
-                <p className="text-text-secondary text-sm max-w-sm">
-                  Enter your question and configure the simulation on the left, then
-                  click Run Prediction.
-                </p>
+              <div className="h-full flex flex-col">
+                {recentPredictions.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center">
+                    <div className="w-20 h-20 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-6">
+                      <BrainCircuit className="w-10 h-10 text-accent" />
+                    </div>
+                    <h2 className="text-2xl font-bold mb-2">Ready to predict</h2>
+                    <p className="text-text-secondary text-sm max-w-sm">
+                      Enter your question and configure the simulation on the left, then
+                      click Run Prediction.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="pt-2">
+                    <div className="flex items-center gap-2 mb-4">
+                      <History className="w-4 h-4 text-text-muted" />
+                      <span className="text-sm font-medium text-text-secondary">Recent Predictions</span>
+                    </div>
+                    <div className="grid gap-2">
+                      {recentPredictions.map((p) => {
+                        const pct = p.confidence != null ? Math.round(p.confidence * 100) : null;
+                        const color =
+                          pct == null ? "var(--text-muted)"
+                          : pct >= 70 ? "#10B981"
+                          : pct >= 45 ? "#F59E0B"
+                          : "#EF4444";
+                        return (
+                          <motion.button
+                            key={p.id}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            onClick={() => router.push(`/predict?view=${p.id}`)}
+                            className="w-full text-left px-4 py-3 rounded-xl border border-border hover:border-border-strong hover:bg-white/4 transition-all group"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-text-primary line-clamp-1 group-hover:text-accent transition-colors">
+                                  {p.query}
+                                </p>
+                                {p.headline && (
+                                  <p className="text-xs text-text-muted mt-0.5 line-clamp-1">{p.headline}</p>
+                                )}
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <span className="text-[10px] font-mono text-text-muted capitalize">{p.domain}</span>
+                                  <span className="text-[10px] text-text-muted opacity-40">·</span>
+                                  <span className="text-[10px] font-mono text-text-muted">{p.time_horizon}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {pct != null && (
+                                  <span className="text-sm font-bold font-mono" style={{ color }}>{pct}%</span>
+                                )}
+                                <ChevronRight className="w-3.5 h-3.5 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+                            </div>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex-1 flex flex-col items-center justify-center text-center mt-12">
+                      <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4">
+                        <BrainCircuit className="w-7 h-7 text-accent" />
+                      </div>
+                      <h2 className="text-lg font-bold mb-1">Start a new prediction</h2>
+                      <p className="text-text-secondary text-sm max-w-xs">
+                        Enter your question on the left and click Run Prediction.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <PipelinePanel />
@@ -398,15 +483,55 @@ function PredictPageInner() {
           {activeTab === "pipeline" && (
             <div className="p-4">
               {status === "idle" && (
-                <div className="flex flex-col items-center justify-center text-center py-16">
-                  <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4">
-                    <BrainCircuit className="w-8 h-8 text-accent" />
+                recentPredictions.length > 0 ? (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <History className="w-3.5 h-3.5 text-text-muted" />
+                      <span className="text-xs font-medium text-text-secondary">Recent Predictions</span>
+                    </div>
+                    <div className="grid gap-2">
+                      {recentPredictions.map((p) => {
+                        const pct = p.confidence != null ? Math.round(p.confidence * 100) : null;
+                        const color =
+                          pct == null ? "var(--text-muted)"
+                          : pct >= 70 ? "#10B981"
+                          : pct >= 45 ? "#F59E0B"
+                          : "#EF4444";
+                        return (
+                          <button
+                            key={p.id}
+                            onClick={() => router.push(`/predict?view=${p.id}`)}
+                            className="w-full text-left px-3 py-2.5 rounded-lg border border-border hover:border-border-strong hover:bg-white/4 transition-all group"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-text-primary line-clamp-1">{p.query}</p>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <span className="text-[10px] font-mono text-text-muted capitalize">{p.domain}</span>
+                                  <span className="text-[10px] text-text-muted opacity-40">·</span>
+                                  <span className="text-[10px] font-mono text-text-muted">{p.time_horizon}</span>
+                                </div>
+                              </div>
+                              {pct != null && (
+                                <span className="text-xs font-bold font-mono flex-shrink-0" style={{ color }}>{pct}%</span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <h2 className="text-xl font-bold mb-2">Ready to predict</h2>
-                  <p className="text-text-secondary text-sm max-w-xs">
-                    Configure your question in the Configure tab, then click Run Prediction.
-                  </p>
-                </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center py-16">
+                    <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4">
+                      <BrainCircuit className="w-8 h-8 text-accent" />
+                    </div>
+                    <h2 className="text-xl font-bold mb-2">Ready to predict</h2>
+                    <p className="text-text-secondary text-sm max-w-xs">
+                      Configure your question in the Configure tab, then click Run Prediction.
+                    </p>
+                  </div>
+                )
               )}
               <PipelinePanel />
               {status === "error" && (
