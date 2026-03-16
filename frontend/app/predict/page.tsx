@@ -264,7 +264,8 @@ function PredictPageInner() {
       const restored = usePredictionStore.getState().sessions.find((s) => s.sessionId === sessionId);
       if (restored?.domain) setDomain(restored.domain);
       if (restored?.timeHorizon) setTimeHorizon(restored.timeHorizon);
-      setActiveTab("configure");
+      // On mobile, switch to pipeline tab when restoring a complete session so results are visible
+      setActiveTab(restored?.status === "complete" ? "pipeline" : "configure");
     },
     [restoreSession]
   );
