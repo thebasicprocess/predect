@@ -366,6 +366,16 @@ async def collect_evidence(
             seen_urls.add(item.url)
             unique.append(item)
 
+    # Second pass: deduplicate by title prefix (same story, different outlets)
+    seen_title_keys = set()
+    deduped = []
+    for item in unique:
+        title_key = item.title.lower().strip()[:60]
+        if title_key not in seen_title_keys:
+            seen_title_keys.add(title_key)
+            deduped.append(item)
+    unique = deduped
+
     try:
         unique = await enrich_evidence(unique[:max_items], query)
     except Exception:

@@ -477,6 +477,7 @@ export default function HistoryPage() {
   });
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [domainFilter, setDomainFilter] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteMutation = useMutation({
     mutationFn: deletePrediction,
@@ -495,14 +496,24 @@ export default function HistoryPage() {
 
   const filteredPredictions = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return predictions;
-    return predictions.filter(
+    let result = predictions;
+    if (domainFilter) result = result.filter((p) => p.domain === domainFilter);
+    if (!q) return result;
+    return result.filter(
       (p) =>
         p.query.toLowerCase().includes(q) ||
         (p.headline?.toLowerCase().includes(q)) ||
         (p.domain?.toLowerCase().includes(q))
     );
-  }, [predictions, searchQuery]);
+  }, [predictions, searchQuery, domainFilter]);
+
+  const presentDomains = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of predictions) {
+      if (p.domain) counts.set(p.domain, (counts.get(p.domain) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [predictions]);
 
   const grouped = filteredPredictions.reduce(
     (acc: Record<string, HistoryItem[]>, p: HistoryItem) => {
@@ -536,8 +547,12 @@ export default function HistoryPage() {
             <p className="text-sm text-text-secondary">
               {isLoading
                 ? "Loading..."
+                : searchQuery && domainFilter
+                ? `${filteredPredictions.length} match${filteredPredictions.length !== 1 ? "es" : ""}`
                 : searchQuery
                 ? `${filteredPredictions.length} of ${predictions.length} prediction${predictions.length !== 1 ? "s" : ""}`
+                : domainFilter
+                ? `${filteredPredictions.length} ${domainFilter} prediction${filteredPredictions.length !== 1 ? "s" : ""}`
                 : `${predictions.length} total prediction${predictions.length !== 1 ? "s" : ""}`}
             </p>
           </div>
@@ -560,6 +575,34 @@ export default function HistoryPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Domain filter chips */}
+        {!isLoading && presentDomains.length > 1 && (
+          <div className="flex items-center gap-1.5 flex-wrap mb-4">
+            {presentDomains.map(([domain, count]) => (
+              <button
+                key={domain}
+                onClick={() => setDomainFilter(domainFilter === domain ? null : domain)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all capitalize ${
+                  domainFilter === domain
+                    ? "bg-accent/15 border-accent/30 text-accent"
+                    : "border-border text-text-muted hover:border-border-strong hover:text-text-secondary"
+                }`}
+              >
+                {domain}
+                <span className="text-[10px] opacity-60 font-mono">{count}</span>
+              </button>
+            ))}
+            {domainFilter && (
+              <button
+                onClick={() => setDomainFilter(null)}
+                className="px-2.5 py-1 rounded-full text-xs text-text-muted hover:text-text-primary border border-transparent hover:border-border transition-colors"
+              >
+                Clear
               </button>
             )}
           </div>
@@ -616,13 +659,20 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* No search results */}
-        {!isLoading && predictions.length > 0 && searchQuery && filteredPredictions.length === 0 && (
+        {/* No search/filter results */}
+        {!isLoading && predictions.length > 0 && (searchQuery || domainFilter) && filteredPredictions.length === 0 && (
           <div className="text-center py-16">
             <Search className="w-8 h-8 text-text-muted/30 mx-auto mb-3" />
-            <p className="text-sm text-text-muted">No predictions match &ldquo;{searchQuery}&rdquo;</p>
-            <button onClick={() => setSearchQuery("")} className="mt-2 text-xs text-accent hover:text-accent-hover transition-colors">
-              Clear search
+            <p className="text-sm text-text-muted">
+              {searchQuery
+                ? `No predictions match \u201c${searchQuery}\u201d`
+                : `No predictions in the \u201c${domainFilter}\u201d domain`}
+            </p>
+            <button
+              onClick={() => { setSearchQuery(""); setDomainFilter(null); }}
+              className="mt-2 text-xs text-accent hover:text-accent-hover transition-colors"
+            >
+              Clear filters
             </button>
           </div>
         )}
