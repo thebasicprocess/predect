@@ -902,12 +902,42 @@ export function ResultsView() {
                             <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: `${color}25`, color }}>
                               {agentName[0]}
                             </div>
-                            <div>
+                            <div className="flex-1">
                               <div className="text-sm font-semibold text-text-primary">{agentName}</div>
                               {agentData && <div className="text-[11px] text-text-muted">{agentData.role}</div>}
                             </div>
-                            <div className="ml-auto text-[10px] font-mono text-text-muted">{agentRounds.length} rounds</div>
+                            <div className="text-[10px] font-mono text-text-muted">{agentRounds.length} rounds</div>
                           </div>
+                          {/* Conviction trend mini-chart */}
+                          {agentData && agentRounds.some(r => r.belief_shifts?.[agentData.id] !== undefined) && (() => {
+                            const changes = agentRounds
+                              .map(r => r.belief_shifts?.[agentData.id] ?? 0)
+                              .filter((_, i) => agentRounds[i].belief_shifts?.[agentData.id] !== undefined);
+                            const total = changes.reduce((s, v) => s + v, 0);
+                            const totalColor = total > 0.05 ? "#10B981" : total < -0.05 ? "#EF4444" : "#6B7280";
+                            return (
+                              <div className="mb-3 flex items-center gap-2">
+                                <div className="flex items-end gap-0.5 h-6 flex-1">
+                                  {agentRounds.map((r, ri) => {
+                                    const delta = r.belief_shifts?.[agentData.id] ?? 0;
+                                    const barColor = delta > 0 ? "#10B981" : delta < 0 ? "#EF4444" : "#6B7280";
+                                    const barH = Math.max(2, Math.abs(delta) / 0.3 * 18);
+                                    return (
+                                      <div key={ri} className="flex-1 flex flex-col items-center justify-end" title={`R${r.round}: ${delta > 0 ? "+" : ""}${(delta * 100).toFixed(0)}%`}>
+                                        <div className="w-full rounded-sm" style={{ height: barH, background: barColor, opacity: 0.8 }} />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <div className="flex flex-col items-end flex-shrink-0">
+                                  <span className="text-[9px] font-mono" style={{ color: totalColor }}>
+                                    {total > 0 ? "+" : ""}{(total * 100).toFixed(0)}%
+                                  </span>
+                                  <span className="text-[8px] text-text-muted">conviction</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
                           <div className="space-y-2.5 max-h-64 overflow-y-auto">
                             {agentRounds.map((ev, ri) => {
                               const isAgent1 = ev.agent1_name === agentName;
