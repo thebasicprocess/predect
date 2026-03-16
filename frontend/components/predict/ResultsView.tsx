@@ -44,16 +44,6 @@ interface PredictionResult {
   }>;
 }
 
-const TABS = [
-  { id: "report", label: "Report" },
-  { id: "scenarios", label: "Scenarios" },
-  { id: "drivers", label: "Drivers" },
-  { id: "timeline", label: "Timeline" },
-  { id: "simulation", label: "Simulation" },
-  { id: "narratives", label: "Narratives" },
-  { id: "evidence", label: "Sources" },
-  { id: "agents", label: "Agents" },
-];
 
 const SOURCE_COLORS: Record<string, string> = {
   arxiv: "#635BFF",
@@ -69,7 +59,7 @@ const SOURCE_COLORS: Record<string, string> = {
 const AGENT_COLORS = ["#635BFF", "#10B981", "#F59E0B", "#EF4444", "#60A5FA", "#A78BFA", "#EC4899", "#F97316"];
 
 export function ResultsView() {
-  const { result, status, predictionId, agents, roundEvents, evidence } = usePredictionStore();
+  const { result, status, predictionId, agents, roundEvents, evidence, query } = usePredictionStore();
   const [activeTab, setActiveTab] = useState("report");
   const [copied, setCopied] = useState(false);
 
@@ -77,6 +67,17 @@ export function ResultsView() {
 
   const report = result as unknown as PredictionResult;
   const confidenceColor = getConfidenceColor(report.confidence.score);
+
+  const tabs = [
+    { id: "report", label: "Report" },
+    { id: "scenarios", label: "Scenarios" },
+    { id: "drivers", label: "Drivers" },
+    { id: "timeline", label: "Timeline" },
+    { id: "simulation", label: roundEvents.length > 0 ? `Simulation (${roundEvents.length})` : "Simulation" },
+    { id: "narratives", label: "Narratives" },
+    { id: "evidence", label: evidence.length > 0 ? `Sources (${evidence.length})` : "Sources" },
+    { id: "agents", label: agents.length > 0 ? `Agents (${agents.length})` : "Agents" },
+  ];
 
   const handleShare = async () => {
     const url = `${window.location.origin}/predict?view=${predictionId}`;
@@ -103,6 +104,11 @@ export function ResultsView() {
     >
       {/* Headline + Confidence — always visible, not in tabs */}
       <Card glow>
+        {query && (
+          <p className="text-[11px] text-text-muted font-mono mb-3 leading-snug line-clamp-2 opacity-70">
+            &ldquo;{query}&rdquo;
+          </p>
+        )}
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -146,7 +152,7 @@ export function ResultsView() {
       </Card>
 
       {/* Tab bar */}
-      <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
       {/* Tab content */}
       <motion.div
