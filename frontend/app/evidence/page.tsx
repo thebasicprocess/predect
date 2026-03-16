@@ -26,6 +26,7 @@ const sourceColors: Record<string, string> = {
   gnews: "#A78BFA",
   google_news: "#10B981",
   wikipedia: "#60A5FA",
+  alpha_vantage: "#22D3EE",
 };
 
 interface EvidenceItem {

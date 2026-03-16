@@ -20,6 +20,7 @@ async def collect(request: CollectRequest):
         max_items=request.max_items or 20,
         news_api_key=request.news_api_key or None,
         gnews_api_key=request.gnews_api_key or None,
+        alpha_vantage_key=request.alpha_vantage_key or None,
     )
     bundle_id = str(uuid.uuid4())
     conn = get_connection()
