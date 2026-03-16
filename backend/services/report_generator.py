@@ -7,6 +7,40 @@ from backend.models.simulation import AgentPersona, RoundEvent
 from backend.services.llm_router import llm_call_json_with_usage
 
 
+def _timeline_periods(time_horizon: str) -> list[str]:
+    """Return timeline periods calibrated to the requested time horizon."""
+    h = time_horizon.lower().strip()
+    if "week" in h:
+        return ["2 days", "5 days", "1 week"]
+    if h == "1 month":
+        return ["1 week", "2 weeks", "1 month"]
+    if "3 month" in h:
+        return ["2 weeks", "1 month", "3 months"]
+    if "6 month" in h:
+        return ["1 month", "3 months", "6 months"]
+    if "1 year" in h:
+        return ["3 months", "6 months", "1 year"]
+    # 2+ years
+    return ["6 months", "1 year", "2 years"]
+
+
+def _event_periods(time_horizon: str) -> list[str]:
+    """Return 5 predicted event periods calibrated to the requested time horizon."""
+    h = time_horizon.lower().strip()
+    if "week" in h:
+        return ["1 day", "3 days", "5 days", "1 week", "2 weeks"]
+    if h == "1 month":
+        return ["3 days", "1 week", "2 weeks", "3 weeks", "1 month"]
+    if "3 month" in h:
+        return ["1 week", "2 weeks", "1 month", "2 months", "3 months"]
+    if "6 month" in h:
+        return ["2 weeks", "1 month", "2 months", "4 months", "6 months"]
+    if "1 year" in h:
+        return ["1 month", "3 months", "6 months", "9 months", "1 year"]
+    # 2+ years
+    return ["3 months", "6 months", "1 year", "18 months", "2 years"]
+
+
 async def generate_report(
     query: str,
     domain: str,
@@ -36,6 +70,16 @@ async def generate_report(
     # If every claim is unique (divergent views), consensus is low.
     uniqueness = len(set(all_claims)) / max(len(all_claims), 1)
     agent_consensus = round(max(0.05, 1.0 - uniqueness), 3)
+
+    tl_periods = _timeline_periods(time_horizon)
+    ev_periods = _event_periods(time_horizon)
+    tl_example = ",\n    ".join(
+        [f'{{"period": "{p}", "outlook": "description"}}' for p in tl_periods]
+    )
+    ev_example = ",\n    ".join([
+        f'{{"period": "{p}", "event": "Specific measurable event", "probability": {round(0.75 - i * 0.08, 2)}, "category": "market"}}'
+        for i, p in enumerate(ev_periods)
+    ])
 
     # First call: main report (no predictedEvents — kept separate to avoid LLM ignoring it)
     result, tokens1 = await llm_call_json_with_usage(
@@ -69,9 +113,7 @@ Generate a comprehensive prediction report as JSON:
   "keyDrivers": ["driver1", "driver2", "driver3", "driver4"],
   "riskFactors": ["risk1", "risk2", "risk3"],
   "timelineOutlook": [
-    {{"period": "1 month", "outlook": "description"}},
-    {{"period": "3 months", "outlook": "description"}},
-    {{"period": "6 months", "outlook": "description"}}
+    {tl_example}
   ],
   "dominantNarratives": ["narrative1", "narrative2", "narrative3"]
 }}"""
@@ -92,11 +134,7 @@ Headline: {headline}
 Return JSON in this exact format:
 {{
   "events": [
-    {{"period": "1 month", "event": "Specific measurable event", "probability": 0.78, "category": "market"}},
-    {{"period": "2 months", "event": "Another concrete event", "probability": 0.65, "category": "technical"}},
-    {{"period": "3 months", "event": "Mid-term milestone", "probability": 0.55, "category": "regulatory"}},
-    {{"period": "6 months", "event": "Longer term development", "probability": 0.45, "category": "political"}},
-    {{"period": "12 months", "event": "Long-range outcome", "probability": 0.35, "category": "social"}}
+    {ev_example}
   ]
 }}
 
