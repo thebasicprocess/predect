@@ -45,7 +45,7 @@ function PredictPageInner() {
   const [timeHorizon, setTimeHorizon] = useState("6 months");
   const [activeTab, setActiveTab] = useState<Tab>("configure");
   const [recentPredictions, setRecentPredictions] = useState<HistoryItem[]>([]);
-  const { agentCount, rounds } = useSettingsStore();
+  const { agentCount, rounds, newsApiKey, gNewsApiKey } = useSettingsStore();
 
   const {
     addEvent,
@@ -140,6 +140,8 @@ function PredictPageInner() {
         agent_count: agentCount,
         rounds,
         collect_evidence: true,
+        news_api_key: newsApiKey || null,
+        gnews_api_key: gNewsApiKey || null,
       });
       setPredictionId(prediction_id);
 

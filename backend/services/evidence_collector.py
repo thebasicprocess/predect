@@ -221,26 +221,49 @@ async def collect_google_news(query: str, max_results: int = 8) -> List[Evidence
 
 
 async def collect_wikipedia(query: str) -> List[EvidenceItem]:
-    """Collect Wikipedia summary — good for factual background."""
+    """Collect Wikipedia summary — searches for best-match article first."""
     try:
-        search_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{quote(query.replace(' ', '_'))}"
+        # Search for the most relevant Wikipedia article
+        search_url = (
+            f"https://en.wikipedia.org/w/api.php"
+            f"?action=query&list=search&srsearch={quote(query)}&srlimit=2&format=json"
+        )
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(search_url)
-        if resp.status_code == 200:
-            data = resp.json()
-            title = data.get("title", "")
-            extract = data.get("extract", "")[:600]
-            page_url = data.get("content_urls", {}).get("desktop", {}).get("page", "")
-            if extract and page_url:
-                return [EvidenceItem(
-                    id=hashlib.md5(page_url.encode()).hexdigest(),
-                    title=f"Wikipedia: {title}",
-                    url=page_url,
-                    source="wikipedia",
-                    snippet=extract,
-                    credibility_score=0.85,
-                    relevance_score=0.7,
-                )]
+            search_resp = await client.get(search_url)
+        search_data = search_resp.json()
+        search_results = search_data.get("query", {}).get("search", [])
+        if not search_results:
+            return []
+
+        items = []
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            for hit in search_results[:2]:
+                article_title = hit["title"]
+                summary_url = (
+                    f"https://en.wikipedia.org/api/rest_v1/page/summary/"
+                    f"{quote(article_title.replace(' ', '_'))}"
+                )
+                try:
+                    resp = await client.get(summary_url)
+                    if resp.status_code != 200:
+                        continue
+                    data = resp.json()
+                    title = data.get("title", "")
+                    extract = data.get("extract", "")[:600]
+                    page_url = data.get("content_urls", {}).get("desktop", {}).get("page", "")
+                    if extract and page_url:
+                        items.append(EvidenceItem(
+                            id=hashlib.md5(page_url.encode()).hexdigest(),
+                            title=f"Wikipedia: {title}",
+                            url=page_url,
+                            source="wikipedia",
+                            snippet=extract,
+                            credibility_score=0.85,
+                            relevance_score=0.7,
+                        ))
+                except Exception:
+                    continue
+        return items
     except Exception as e:
         logger.warning("Wikipedia collection failed: %s", e)
     return []

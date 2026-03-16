@@ -51,6 +51,8 @@ class PredictRequest(BaseModel):
     agent_count: Optional[int] = 8
     rounds: Optional[int] = 5
     collect_evidence: Optional[bool] = True
+    news_api_key: Optional[str] = None
+    gnews_api_key: Optional[str] = None
 
 
 class PredictionRecord(BaseModel):

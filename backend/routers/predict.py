@@ -34,7 +34,12 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
 
         evidence_items = []
         if request.collect_evidence:
-            evidence_items = await collect_evidence(request.query, max_items=15)
+            evidence_items = await collect_evidence(
+                request.query,
+                max_items=15,
+                news_api_key=request.news_api_key or None,
+                gnews_api_key=request.gnews_api_key or None,
+            )
 
         evidence_id = str(uuid.uuid4())
         with conn:

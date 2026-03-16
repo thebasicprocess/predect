@@ -7,6 +7,8 @@ export interface PredictRequest {
   agent_count?: number;
   rounds?: number;
   collect_evidence?: boolean;
+  news_api_key?: string | null;
+  gnews_api_key?: string | null;
 }
 
 export interface SSEEvent {
