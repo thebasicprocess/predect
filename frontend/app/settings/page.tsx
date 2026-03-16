@@ -146,20 +146,26 @@ export default function SettingsPage() {
               {
                 tier: "fast",
                 color: "#10B981",
-                model: "glm-4-flash",
+                model: "glm-4.5-air",
                 tasks: "Personas, Simulation rounds",
               },
               {
                 tier: "balanced",
                 color: "#F59E0B",
-                model: "glm-4-air",
+                model: "glm-4.5",
                 tasks: "Entity extraction, Evidence, Graph",
               },
               {
                 tier: "premium",
+                color: "#8B5CF6",
+                model: "glm-4.7",
+                tasks: "Synthesis, Confidence, Scoring",
+              },
+              {
+                tier: "top",
                 color: "#EF4444",
-                model: "glm-4 / glm-4-plus",
-                tasks: "Synthesis, Confidence, Sentiment",
+                model: "glm-5",
+                tasks: "Sentiment, Narrative analysis",
               },
             ].map((r) => (
               <div

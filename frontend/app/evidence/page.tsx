@@ -87,8 +87,28 @@ export default function EvidencePage() {
           </div>
         </Card>
 
+        {/* Skeleton loading state */}
+        {loading && (
+          <motion.div
+            className="space-y-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {[0, 1, 2, 3].map((i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06 }}
+                className="skeleton h-24 rounded-xl"
+              />
+            ))}
+          </motion.div>
+        )}
+
         {/* Items */}
-        {items.length > 0 && (
+        {!loading && items.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm text-text-secondary">

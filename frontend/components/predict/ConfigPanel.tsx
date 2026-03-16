@@ -65,14 +65,19 @@ export function ConfigPanel({
           rows={4}
           className="mb-3"
         />
-        <Button
-          onClick={onSubmit}
-          loading={loading}
-          disabled={!query.trim()}
-          className="w-full"
-        >
-          Run Prediction
-        </Button>
+        <div className="flex flex-col gap-1.5">
+          <Button
+            onClick={onSubmit}
+            loading={loading}
+            disabled={!query.trim()}
+            className="w-full"
+          >
+            Run Prediction
+          </Button>
+          <p className="text-[10px] text-text-muted text-center font-mono select-none">
+            ⌘↵ to run
+          </p>
+        </div>
       </Card>
 
       <Card>

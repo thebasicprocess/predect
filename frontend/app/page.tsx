@@ -27,7 +27,7 @@ const features = [
     title: "Swarm Simulation",
     description:
       "8+ AI agents with distinct personas debate your prediction through multiple interaction rounds.",
-    badge: "GLM-4-Flash",
+    badge: "GLM-4.5-Air",
   },
   {
     icon: Network,
@@ -41,7 +41,7 @@ const features = [
     title: "Structured Reports",
     description:
       "Confidence scores, scenario trees, timeline forecasts, and dominant narrative clusters.",
-    badge: "GLM-4",
+    badge: "GLM-4.7",
   },
 ];
 
@@ -88,22 +88,22 @@ const examples = [
 
 const models = [
   {
-    model: "glm-4-flash",
+    model: "glm-4.5-air",
     task: "Persona & Simulation",
     color: "#10B981",
   },
   {
-    model: "glm-4-air",
+    model: "glm-4.5",
     task: "Evidence & Graph",
     color: "#F59E0B",
   },
   {
-    model: "glm-4",
+    model: "glm-4.7",
     task: "Synthesis & Scoring",
-    color: "#EF4444",
+    color: "#8B5CF6",
   },
   {
-    model: "glm-4-plus",
+    model: "glm-5",
     task: "Sentiment & Narrative",
     color: "#EF4444",
   },

@@ -3,7 +3,9 @@ import { motion } from "framer-motion";
 import { usePredictionStore } from "@/lib/stores/predictionStore";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { formatConfidence, getConfidenceColor } from "@/lib/utils";
+import { getConfidenceColor } from "@/lib/utils";
+import { ConfidenceGauge } from "@/components/predict/ConfidenceGauge";
+import { TimelineChart } from "@/components/predict/TimelineChart";
 import {
   TrendingUp,
   TrendingDown,
@@ -54,14 +56,11 @@ export function ResultsView() {
               {report.headline}
             </h2>
           </div>
-          <div className="text-right flex-shrink-0">
-            <div
-              className="text-4xl font-bold font-mono"
-              style={{ color: confidenceColor }}
-            >
-              {formatConfidence(report.confidence.score)}
-            </div>
-            <div className="text-xs text-text-muted">confidence</div>
+          <div className="flex-shrink-0">
+            <ConfidenceGauge
+              score={report.confidence.score}
+              color={confidenceColor}
+            />
           </div>
         </div>
         <p className="text-sm text-text-secondary">{report.verdict}</p>
@@ -165,16 +164,7 @@ export function ResultsView() {
           <CardTitle>Timeline Outlook</CardTitle>
           <Clock className="w-3.5 h-3.5 text-text-muted" />
         </CardHeader>
-        <div className="space-y-2">
-          {report.timelineOutlook.map((t, i) => (
-            <div key={i} className="flex gap-3">
-              <span className="text-xs font-mono text-accent w-20 flex-shrink-0">
-                {t.period}
-              </span>
-              <span className="text-xs text-text-secondary">{t.outlook}</span>
-            </div>
-          ))}
-        </div>
+        <TimelineChart items={report.timelineOutlook} />
       </Card>
 
       {/* Dominant narratives */}
