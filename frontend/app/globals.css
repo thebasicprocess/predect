@@ -183,3 +183,12 @@ body {
 .confidence-arc-high   { stroke: #10B981; }
 .confidence-arc-medium { stroke: #F59E0B; }
 .confidence-arc-low    { stroke: #EF4444; }
+
+/* Accessibility: disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

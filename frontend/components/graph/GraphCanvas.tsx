@@ -133,8 +133,8 @@ export const GraphCanvas = forwardRef<
       const cam = cameraRef.current;
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
+      const cx = canvas.offsetWidth / 2;
+      const cy = canvas.offsetHeight / 2;
       const nextScale = clampScale(cam.scale + SCALE_STEP);
       const ratio = nextScale / cam.scale;
       cam.x = cx - ratio * (cx - cam.x);
@@ -145,8 +145,8 @@ export const GraphCanvas = forwardRef<
       const cam = cameraRef.current;
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
+      const cx = canvas.offsetWidth / 2;
+      const cy = canvas.offsetHeight / 2;
       const nextScale = clampScale(cam.scale - SCALE_STEP);
       const ratio = nextScale / cam.scale;
       cam.x = cx - ratio * (cx - cam.x);
@@ -164,14 +164,16 @@ export const GraphCanvas = forwardRef<
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d")!;
 
+    const dpr = window.devicePixelRatio || 1;
+
     const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+      canvas.width = canvas.offsetWidth * dpr;
+      canvas.height = canvas.offsetHeight * dpr;
     };
     resize();
 
-    const W = canvas.width;
-    const H = canvas.height;
+    const W = canvas.offsetWidth;
+    const H = canvas.offsetHeight;
 
     // Initialise positions for new nodes
     nodes.forEach((n) => {
@@ -187,8 +189,13 @@ export const GraphCanvas = forwardRef<
 
     tickRef.current = 0;
 
+    // Build node type map once for O(1) lookups in draw loop
+    const nodeTypeMap = new Map<string, string>();
+    nodes.forEach(n => nodeTypeMap.set(n.id, n.type));
+
     function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
       const positions = posRef.current;
       const camera = cameraRef.current;
       const currentHovered = hoveredRef.current;
@@ -264,13 +271,9 @@ export const GraphCanvas = forwardRef<
         const b = positions.get(e.target_id);
         if (!a || !b) return;
         // Skip edge if either endpoint node type is hidden
-        const srcNode = nodesRef.current.find((n) => n.id === e.source_id);
-        const tgtNode = nodesRef.current.find((n) => n.id === e.target_id);
-        if (
-          (srcNode && hiddenTypes.has(srcNode.type)) ||
-          (tgtNode && hiddenTypes.has(tgtNode.type))
-        )
-          return;
+        const srcType = nodeTypeMap.get(e.source_id);
+        const tgtType = nodeTypeMap.get(e.target_id);
+        if ((srcType && hiddenTypes.has(srcType)) || (tgtType && hiddenTypes.has(tgtType))) return;
 
         ctx.strokeStyle = "rgba(99,91,255,0.25)";
         ctx.lineWidth = Math.max(0.5, e.weight * 0.8);

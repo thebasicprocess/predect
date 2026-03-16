@@ -43,6 +43,7 @@ const TRACK_PATH = describeArc(CX, CY, R, START_ANGLE, END_ANGLE);
 const ARC_LENGTH = Math.PI * R; // πr for a semicircle
 
 export function ConfidenceGauge({ score, color }: ConfidenceGaugeProps) {
+  const clampedScore = Math.max(0, Math.min(1, score));
   const animatedScore = useMotionValue(0);
   const displayPct = useTransform(animatedScore, (v) =>
     Math.round(v * 100).toString()
@@ -54,12 +55,12 @@ export function ConfidenceGauge({ score, color }: ConfidenceGaugeProps) {
   );
 
   useEffect(() => {
-    const controls = animate(animatedScore, score, {
+    const controls = animate(animatedScore, clampedScore, {
       duration: 1.2,
       ease: [0.25, 0.46, 0.45, 0.94],
     });
     return controls.stop;
-  }, [score, animatedScore]);
+  }, [clampedScore, animatedScore]);
 
   return (
     <div className="flex flex-col items-center">
@@ -67,7 +68,7 @@ export function ConfidenceGauge({ score, color }: ConfidenceGaugeProps) {
         viewBox="0 0 160 100"
         width={160}
         height={100}
-        aria-label={`Confidence: ${Math.round(score * 100)}%`}
+        aria-label={`Confidence: ${Math.round(clampedScore * 100)}%`}
         role="img"
       >
         {/* Track */}

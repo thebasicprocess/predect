@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import ipaddress
+import logging
 import xml.etree.ElementTree as ET
 from typing import List
 from urllib.parse import quote, urlparse
@@ -8,6 +9,8 @@ import httpx
 from bs4 import BeautifulSoup
 from backend.models.evidence import EvidenceItem
 from backend.services.llm_router import llm_call_json
+
+logger = logging.getLogger(__name__)
 
 
 _BLOCKED_HOSTS = {"localhost", "0.0.0.0", "::1"}
@@ -63,7 +66,8 @@ async def collect_arxiv(query: str, max_results: int = 5) -> List[EvidenceItem]:
                 relevance_score=0.7,
             ))
         return items
-    except Exception:
+    except Exception as e:
+        logger.warning("arxiv collection failed: %s", e)
         return []
 
 
@@ -89,7 +93,8 @@ async def collect_hn(query: str, max_results: int = 5) -> List[EvidenceItem]:
                 relevance_score=0.65,
             ))
         return items
-    except Exception:
+    except Exception as e:
+        logger.warning("HN collection failed: %s", e)
         return []
 
 
@@ -117,7 +122,8 @@ async def collect_reddit(query: str, max_results: int = 5) -> List[EvidenceItem]
                 relevance_score=0.6,
             ))
         return items
-    except Exception:
+    except Exception as e:
+        logger.warning("Reddit collection failed: %s", e)
         return []
 
 
@@ -209,7 +215,8 @@ async def collect_google_news(query: str, max_results: int = 8) -> List[Evidence
                 published_at=pub_el.text if pub_el is not None else None,
             ))
         return items
-    except Exception:
+    except Exception as e:
+        logger.warning("Google News collection failed: %s", e)
         return []
 
 
@@ -234,8 +241,8 @@ async def collect_wikipedia(query: str) -> List[EvidenceItem]:
                     credibility_score=0.85,
                     relevance_score=0.7,
                 )]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Wikipedia collection failed: %s", e)
     return []
 
 

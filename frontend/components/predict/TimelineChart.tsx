@@ -10,20 +10,20 @@ interface TimelineChartProps {
   items: TimelineItem[];
 }
 
-const outlookColors: Record<string, string> = {
-  bullish: "#10B981",
-  bearish: "#EF4444",
-  neutral: "#F59E0B",
-  positive: "#10B981",
-  negative: "#EF4444",
-  mixed: "#F59E0B",
-  uncertain: "#F59E0B",
-};
+// Ordered from most to least specific to avoid partial-word false matches
+const outlookPatterns: [RegExp, string][] = [
+  [/\bbullish\b/i, "#10B981"],
+  [/\bbearish\b/i, "#EF4444"],
+  [/\bnegative\b/i, "#EF4444"],
+  [/\bpositive\b/i, "#10B981"],
+  [/\buncertain\b/i, "#F59E0B"],
+  [/\bmixed\b/i, "#F59E0B"],
+  [/\bneutral\b/i, "#F59E0B"],
+];
 
 function getOutlookColor(outlook: string): string {
-  const lower = outlook.toLowerCase();
-  for (const [key, color] of Object.entries(outlookColors)) {
-    if (lower.includes(key)) return color;
+  for (const [pattern, color] of outlookPatterns) {
+    if (pattern.test(outlook)) return color;
   }
   return "#635BFF";
 }
