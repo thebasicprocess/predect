@@ -1,9 +1,11 @@
 "use client";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { getPredictStats } from "@/lib/api";
 import {
   BrainCircuit,
   Network,
@@ -150,6 +152,26 @@ function ConfidenceBar({ score }: { score: number }) {
 }
 
 export default function Home() {
+  const [liveStats, setLiveStats] = useState<Awaited<ReturnType<typeof getPredictStats>>>(null);
+
+  useEffect(() => {
+    getPredictStats().then(setLiveStats);
+  }, []);
+
+  const displayStats = liveStats !== null
+    ? [
+        { label: "Predictions Run", value: String(liveStats.total_predictions), icon: Cpu, suffix: "" },
+        {
+          label: "Avg Confidence",
+          value: liveStats.avg_confidence != null ? String(Math.round(liveStats.avg_confidence * 100)) : "—",
+          icon: BarChart3,
+          suffix: liveStats.avg_confidence != null ? "%" : "",
+        },
+        { label: "Graph Nodes", value: String(liveStats.total_graph_nodes), icon: Database, suffix: "" },
+        { label: "Graph Edges", value: String(liveStats.total_graph_edges), icon: Network, suffix: "" },
+      ]
+    : stats;
+
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -251,7 +273,7 @@ export default function Home() {
       <section className="border-y border-border bg-white/[0.02]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((stat, i) => (
+            {displayStats.map((stat, i) => (
               <motion.div
                 key={stat.label}
                 className="text-center"

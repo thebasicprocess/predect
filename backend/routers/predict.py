@@ -277,6 +277,58 @@ async def get_history():
     return results
 
 
+@router.get("/stats")
+async def get_stats():
+    conn = get_connection()
+    try:
+        def safe_count(query: str, params: tuple = ()) -> int:
+            try:
+                row = conn.execute(query, params).fetchone()
+                return row[0] if row and row[0] is not None else 0
+            except Exception:
+                return 0
+
+        total_predictions = safe_count("SELECT COUNT(*) FROM predictions")
+        completed_predictions = safe_count(
+            "SELECT COUNT(*) FROM predictions WHERE status = 'complete'"
+        )
+
+        avg_confidence: float | None = None
+        try:
+            row = conn.execute(
+                "SELECT AVG(confidence) FROM predictions WHERE status = 'complete' AND confidence IS NOT NULL"
+            ).fetchone()
+            if row and row[0] is not None:
+                avg_confidence = round(float(row[0]), 4)
+        except Exception:
+            pass
+
+        domains: dict = {}
+        try:
+            rows = conn.execute(
+                "SELECT domain, COUNT(*) FROM predictions"
+                " WHERE status = 'complete' AND domain IS NOT NULL"
+                " GROUP BY domain"
+            ).fetchall()
+            domains = {row[0]: row[1] for row in rows}
+        except Exception:
+            pass
+
+        total_graph_nodes = safe_count("SELECT COUNT(*) FROM nodes")
+        total_graph_edges = safe_count("SELECT COUNT(*) FROM edges")
+
+        return {
+            "total_predictions": total_predictions,
+            "completed_predictions": completed_predictions,
+            "avg_confidence": avg_confidence,
+            "domains": domains,
+            "total_graph_nodes": total_graph_nodes,
+            "total_graph_edges": total_graph_edges,
+        }
+    finally:
+        conn.close()
+
+
 @router.get("/{prediction_id}/result")
 async def get_result(prediction_id: str):
     conn = get_connection()

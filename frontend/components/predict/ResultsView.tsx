@@ -22,6 +22,7 @@ import {
   FileSearch,
   Download,
   Users,
+  Link2,
 } from "lucide-react";
 
 interface PredictionResult {
@@ -64,6 +65,7 @@ export function ResultsView() {
   const { result, status, predictionId, agents, roundEvents, evidence, query } = usePredictionStore();
   const [activeTab, setActiveTab] = useState("report");
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [simViewMode, setSimViewMode] = useState<"rounds" | "agents">("rounds");
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
 
@@ -204,6 +206,29 @@ export function ResultsView() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleExportJson = () => {
+    const data = {
+      query,
+      report,
+      evidence,
+      agents,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `predect-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -249,7 +274,23 @@ export function ResultsView() {
             </div>
             <h2 className="text-xl font-bold leading-tight">{report.headline}</h2>
           </div>
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 flex flex-col items-end gap-2">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleCopyLink}
+                className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+                title="Copy link"
+              >
+                {copiedLink ? <Check className="w-4 h-4 text-success" /> : <Link2 className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={handleExportJson}
+                className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+                title="Export JSON"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            </div>
             <ConfidenceGauge
               score={report.confidence.score}
               color={confidenceColor}

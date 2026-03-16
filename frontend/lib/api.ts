@@ -134,3 +134,20 @@ export async function checkHealth() {
     return false;
   }
 }
+
+export async function getPredictStats() {
+  try {
+    const res = await fetch(`${API_URL}/api/predict/stats`);
+    if (!res.ok) return null;
+    return res.json() as Promise<{
+      total_predictions: number;
+      completed_predictions: number;
+      avg_confidence: number | null;
+      domains: Record<string, number>;
+      total_graph_nodes: number;
+      total_graph_edges: number;
+    }>;
+  } catch {
+    return null;
+  }
+}
