@@ -119,6 +119,37 @@ export function ResultsView() {
       }, []);
   }, [roundEvents, claimFreqMap]);
 
+  // Confidence breakdown: compute evidence quality and conviction trend client-side
+  const confidenceBreakdown = useMemo(() => {
+    const avgCred = evidence.length > 0
+      ? evidence.reduce((s, e) => s + (e.credibility_score ?? 0.5), 0) / evidence.length
+      : null;
+    const evidenceQuality = avgCred !== null
+      ? avgCred >= 0.75 ? "high" : avgCred >= 0.55 ? "medium" : "low"
+      : null;
+
+    let netConviction = 0;
+    let shiftCount = 0;
+    for (const r of roundEvents) {
+      for (const v of Object.values(r.belief_shifts ?? {})) {
+        netConviction += v as number;
+        shiftCount++;
+      }
+    }
+    const avgConvChange = shiftCount > 0 ? netConviction / shiftCount : null;
+    const convictionTrend = avgConvChange !== null
+      ? avgConvChange > 0.05 ? "strengthening" : avgConvChange < -0.05 ? "weakening" : "stable"
+      : null;
+
+    const totalRounds = new Set(roundEvents.map(r => r.round)).size;
+    const allClaims = roundEvents.flatMap(r => r.emergent_claims);
+    const claimFreqs = new Map<string, number>();
+    for (const c of allClaims) claimFreqs.set(c, (claimFreqs.get(c) ?? 0) + 1);
+    const highFreqClaims = Array.from(claimFreqs.values()).filter(v => v >= 3).length;
+
+    return { avgCred, evidenceQuality, convictionTrend, avgConvChange, totalRounds, highFreqClaims };
+  }, [evidence, roundEvents]);
+
   // Agent-centric view: group round events by agent
   const agentRoundMap = useMemo(() => {
     const map = new Map<string, RoundEvent[]>();
@@ -429,6 +460,45 @@ export function ResultsView() {
                     ? "Moderate confidence — some conflicting signals present"
                     : "Low confidence — high uncertainty, significantly conflicting views"}
                 </p>
+              </Card>
+            )}
+
+            {/* Confidence breakdown */}
+            {(confidenceBreakdown.evidenceQuality || confidenceBreakdown.convictionTrend) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Confidence Factors</CardTitle>
+                </CardHeader>
+                <div className="space-y-2 mt-1">
+                  {confidenceBreakdown.evidenceQuality && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-text-muted">Evidence quality</span>
+                      <span className="text-[11px] font-mono" style={{ color: confidenceBreakdown.evidenceQuality === "high" ? "#10B981" : confidenceBreakdown.evidenceQuality === "medium" ? "#F59E0B" : "#EF4444" }}>
+                        {confidenceBreakdown.evidenceQuality.toUpperCase()} · {confidenceBreakdown.avgCred !== null ? Math.round(confidenceBreakdown.avgCred * 100) : "–"}% avg cred · {evidence.length} sources
+                      </span>
+                    </div>
+                  )}
+                  {report.agentConsensus !== undefined && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-text-muted">Agent consensus</span>
+                      <span className="text-[11px] font-mono" style={{ color: confidenceColor }}>{Math.round(report.agentConsensus * 100)}%</span>
+                    </div>
+                  )}
+                  {confidenceBreakdown.convictionTrend && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-text-muted">Conviction trend</span>
+                      <span className="text-[11px] font-mono" style={{ color: confidenceBreakdown.convictionTrend === "strengthening" ? "#10B981" : confidenceBreakdown.convictionTrend === "weakening" ? "#EF4444" : "#6B7280" }}>
+                        {confidenceBreakdown.convictionTrend}
+                      </span>
+                    </div>
+                  )}
+                  {confidenceBreakdown.highFreqClaims > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-text-muted">Consensus claims</span>
+                      <span className="text-[11px] font-mono text-accent">{confidenceBreakdown.highFreqClaims} high-freq · {confidenceBreakdown.totalRounds} rounds</span>
+                    </div>
+                  )}
+                </div>
               </Card>
             )}
 
