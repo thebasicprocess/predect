@@ -17,17 +17,25 @@ async def generate_personas(
         entities.extend(item.entities[:3])
     entity_str = ", ".join(set(entities[:20])) if entities else "various stakeholders"
 
+    # Include top evidence headlines to ground agent beliefs in real sources
+    evidence_headlines = "\n".join([
+        f"- [{item.source}] {item.title}" for item in evidence_items[:8]
+    ]) if evidence_items else "No specific evidence available."
+
     result, tokens = await llm_call_json_with_usage(
         "persona_generation",
-        system_prompt="You are a simulation designer creating diverse agent personas for a prediction simulation.",
+        system_prompt="You are a simulation designer creating diverse agent personas for a prediction simulation. Ground agent beliefs in the provided evidence.",
         user_prompt=f"""Topic: {topic}
 Key entities from evidence: {entity_str}
 
-Generate {count} diverse agent personas. Each should represent a different perspective, background, or stakeholder type related to the topic.
+Recent evidence headlines:
+{evidence_headlines}
 
-Return JSON: {{"agents": [{{"id": "agent_1", "name": "string", "role": "string", "beliefs": ["belief1", "belief2", "belief3"], "behavioral_bias": "string"}}]}}
+Generate {count} diverse agent personas. Each should represent a different perspective, background, or stakeholder type related to the topic. Ground their beliefs in the evidence provided.
 
-Make agents diverse: experts, skeptics, optimists, domain insiders, public voices, international perspectives."""
+Return JSON: {{"agents": [{{"id": "agent_1", "name": "string", "role": "string", "beliefs": ["specific belief grounded in evidence1", "belief2", "belief3"], "behavioral_bias": "string"}}]}}
+
+Make agents diverse: experts, skeptics, optimists, domain insiders, public voices, international perspectives. Each agent should have 3 specific beliefs referencing real aspects of the topic."""
     )
 
     agents = []

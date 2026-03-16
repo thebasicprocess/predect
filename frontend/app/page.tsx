@@ -23,7 +23,7 @@ const features = [
     icon: FileSearch,
     title: "Evidence Collection",
     description:
-      "Autonomously scans ArXiv, Hacker News, Reddit, and the web. Zero API keys required.",
+      "Autonomously scans Google News, Wikipedia, Hacker News, Reddit, and ArXiv. Zero API keys required.",
     badge: "Keyless",
     color: "#10B981",
     glow: "rgba(16, 185, 129, 0.15)",
