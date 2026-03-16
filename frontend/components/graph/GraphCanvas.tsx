@@ -73,6 +73,7 @@ export const GraphCanvas = forwardRef<
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<{ edge: GraphEdge; sx: number; sy: number } | null>(null);
   const posRef = useRef<Map<string, NodePos>>(new Map());
   const animRef = useRef<number>(0);
   const tickRef = useRef(0);
@@ -469,6 +470,43 @@ export const GraphCanvas = forwardRef<
       }
     }
     setHovered(found);
+
+  // Edge proximity detection (only when not hovering a node)
+  if (!found) {
+    const cam = cameraRef.current;
+    let closestEdge: GraphEdge | null = null;
+    let closestDist = 12; // screen-space pixel threshold
+    for (const edge of edgesRef.current) {
+      const a = posRef.current.get(edge.source_id);
+      const b = posRef.current.get(edge.target_id);
+      if (!a || !b) continue;
+      // Convert midpoint to screen space
+      const midWx = (a.x + b.x) / 2;
+      const midWy = (a.y + b.y) / 2;
+      const midSx = midWx * cam.scale + cam.x;
+      const midSy = midWy * cam.scale + cam.y;
+      const dx = mx - midSx;
+      const dy = my - midSy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestEdge = edge;
+      }
+    }
+    if (closestEdge) {
+      const a = posRef.current.get(closestEdge.source_id)!;
+      const b = posRef.current.get(closestEdge.target_id)!;
+      const midWx = (a.x + b.x) / 2;
+      const midWy = (a.y + b.y) / 2;
+      const sx = midWx * cam.scale + cam.x;
+      const sy = midWy * cam.scale + cam.y;
+      setHoveredEdge({ edge: closestEdge, sx, sy });
+    } else {
+      setHoveredEdge(null);
+    }
+  } else {
+    setHoveredEdge(null);
+  }
   };
 
   const handleMouseUp = () => {
@@ -478,6 +516,7 @@ export const GraphCanvas = forwardRef<
   const handleMouseLeave = () => {
     isDraggingRef.current = false;
     setHovered(null);
+    setHoveredEdge(null);
   };
 
   // ── Click ─────────────────────────────────────────────────────────────────
@@ -506,23 +545,37 @@ export const GraphCanvas = forwardRef<
     onNodeSelect(null);
   };
 
-  // ── Cursor style based on hover/drag ─────────────────────────────────────
-  const cursor = isDraggingRef.current
-    ? "grabbing"
-    : hovered
-    ? "pointer"
-    : "grab";
-
   return (
-    <canvas
-      ref={canvasRef}
-      className="w-full h-full"
-      style={{ cursor }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
-    />
+    <div className="relative w-full h-full">
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full"
+        style={{ cursor: isDraggingRef.current ? "grabbing" : hovered ? "pointer" : hoveredEdge ? "crosshair" : "grab" }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
+      />
+      {hoveredEdge && (
+        <div
+          className="absolute pointer-events-none z-20"
+          style={{
+            left: hoveredEdge.sx,
+            top: hoveredEdge.sy,
+            transform: "translate(-50%, -100%) translateY(-8px)",
+          }}
+        >
+          <div className="bg-[#1a1a2e] border border-white/12 rounded-lg px-2.5 py-1.5 shadow-xl shadow-black/50 whitespace-nowrap">
+            <p className="text-[11px] font-mono text-accent font-semibold">
+              {hoveredEdge.edge.relationship.replace(/_/g, " ").toLowerCase()}
+            </p>
+            <p className="text-[10px] text-text-muted mt-0.5">
+              weight: {hoveredEdge.edge.weight.toFixed(2)}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 });

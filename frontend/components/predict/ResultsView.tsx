@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { usePredictionStore, type AgentPersona } from "@/lib/stores/predictionStore";
+import { usePredictionStore, type AgentPersona, type RoundEvent } from "@/lib/stores/predictionStore";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs } from "@/components/ui/Tabs";
@@ -21,6 +21,7 @@ import {
   ExternalLink,
   FileSearch,
   Download,
+  Users,
 } from "lucide-react";
 
 interface PredictionResult {
@@ -63,6 +64,61 @@ export function ResultsView() {
   const { result, status, predictionId, agents, roundEvents, evidence, query } = usePredictionStore();
   const [activeTab, setActiveTab] = useState("report");
   const [copied, setCopied] = useState(false);
+  const [simViewMode, setSimViewMode] = useState<"rounds" | "agents">("rounds");
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+
+  // Claim frequency across all rounds (for "recurring" indicators)
+  const claimFreqMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of roundEvents) {
+      for (const c of r.emergent_claims) {
+        map.set(c, (map.get(c) ?? 0) + 1);
+      }
+    }
+    return map;
+  }, [roundEvents]);
+
+  // Consensus progression: per round, fraction of claims that recur in other rounds
+  const consensusProgression = useMemo(() => {
+    return roundEvents
+      .filter((_, i, arr) => {
+        // Get unique round numbers
+        const seen = new Set<number>();
+        return !seen.has(arr[i].round) && seen.add(arr[i].round);
+      })
+      .reduce((acc: Array<{round: number; score: number}>, _, __, arr) => {
+        const rounds = Array.from(new Set(arr.map(r => r.round))).sort((a, b) => a - b);
+        for (const rNum of rounds) {
+          if (acc.find(a => a.round === rNum)) continue;
+          const roundClaims = roundEvents.filter(r => r.round === rNum).flatMap(r => r.emergent_claims);
+          if (roundClaims.length === 0) { acc.push({ round: rNum, score: 0 }); continue; }
+          const recurring = roundClaims.filter(c => (claimFreqMap.get(c) ?? 0) > 1).length;
+          acc.push({ round: rNum, score: recurring / roundClaims.length });
+        }
+        return acc;
+      }, []);
+  }, [roundEvents, claimFreqMap]);
+
+  // Agent-centric view: group round events by agent
+  const agentRoundMap = useMemo(() => {
+    const map = new Map<string, RoundEvent[]>();
+    for (const ev of roundEvents) {
+      if (!map.has(ev.agent1_name)) map.set(ev.agent1_name, []);
+      if (!map.has(ev.agent2_name)) map.set(ev.agent2_name, []);
+      map.get(ev.agent1_name)!.push(ev);
+      map.get(ev.agent2_name)!.push(ev);
+    }
+    return map;
+  }, [roundEvents]);
+
+  // Evidence source breakdown
+  const sourceBreakdown = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of evidence) {
+      map.set(item.source, (map.get(item.source) ?? 0) + 1);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [evidence]);
 
   if (status !== "complete" || !result) return null;
 
@@ -338,6 +394,40 @@ export function ResultsView() {
             <CardHeader>
               <CardTitle>Scenarios</CardTitle>
             </CardHeader>
+            {/* Stacked proportion bar */}
+            <div className="mb-4">
+              <div className="flex h-3 rounded-full overflow-hidden gap-0.5">
+                {([
+                  { key: "base", color: "#635BFF" },
+                  { key: "bull", color: "#10B981" },
+                  { key: "bear", color: "#EF4444" },
+                ] as const).map(({ key, color }) => {
+                  const pct = Math.round(report.scenarios[key].probability * 100);
+                  return (
+                    <motion.div
+                      key={key}
+                      className="h-full rounded-sm"
+                      style={{ background: color }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.7, ease: "easeOut" }}
+                      title={`${key}: ${pct}%`}
+                    />
+                  );
+                })}
+              </div>
+              <div className="flex justify-between mt-1">
+                {([
+                  { key: "base", label: "Base", color: "#635BFF" },
+                  { key: "bull", label: "Bull", color: "#10B981" },
+                  { key: "bear", label: "Bear", color: "#EF4444" },
+                ] as const).map(({ key, label, color }) => (
+                  <span key={key} className="text-[10px] font-mono" style={{ color }}>
+                    {label} {Math.round(report.scenarios[key].probability * 100)}%
+                  </span>
+                ))}
+              </div>
+            </div>
             <div className="space-y-3">
               {(
                 [
@@ -369,6 +459,17 @@ export function ResultsView() {
                     <p className="text-xs text-text-secondary">
                       {scenario.description}
                     </p>
+                    <div className="mt-2">
+                      <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ background: color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.round(scenario.probability * 100)}%` }}
+                          transition={{ duration: 0.7, ease: "easeOut" }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -487,6 +588,15 @@ export function ResultsView() {
                           <p className="text-xs text-text-secondary leading-snug">
                             {ev.event}
                           </p>
+                          <div className="mt-1.5 h-1 bg-white/8 rounded-full overflow-hidden">
+                            <motion.div
+                              className="h-full rounded-full"
+                              style={{ background: color }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.round(prob * 100)}%` }}
+                              transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.06 }}
+                            />
+                          </div>
                         </div>
                       </motion.div>
                     );
@@ -501,65 +611,184 @@ export function ResultsView() {
         {activeTab === "simulation" && (
           <div className="space-y-3">
             {roundEvents.length > 0 ? (
-              roundEvents.map((round, i) => {
-                const color1 = AGENT_COLORS[(agents as AgentPersona[]).findIndex((a) => a.name === round.agent1_name) % AGENT_COLORS.length] || AGENT_COLORS[0];
-                const color2 = AGENT_COLORS[(agents as AgentPersona[]).findIndex((a) => a.name === round.agent2_name) % AGENT_COLORS.length] || AGENT_COLORS[1];
-                return (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                  >
-                    <Card>
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/6 text-text-muted">
-                          Round {round.round}
-                        </span>
-                        <span className="text-[11px] font-semibold" style={{ color: color1 }}>{round.agent1_name}</span>
-                        <span className="text-[10px] text-text-muted">×</span>
-                        <span className="text-[11px] font-semibold" style={{ color: color2 }}>{round.agent2_name}</span>
+              <>
+                {/* Consensus progression mini chart */}
+                {consensusProgression.length > 1 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Consensus Progression</CardTitle>
+                      <span className="text-[10px] font-mono text-text-muted">across {consensusProgression.length} rounds</span>
+                    </CardHeader>
+                    <div className="mt-2">
+                      <div className="flex items-end gap-1 h-14">
+                        {consensusProgression.map(({ round, score }) => (
+                          <div key={round} className="flex-1 flex flex-col items-center gap-1">
+                            <motion.div
+                              className="w-full rounded-t"
+                              style={{ background: score > 0.5 ? "#10B981" : score > 0.25 ? "#F59E0B" : "#635BFF" }}
+                              initial={{ height: 0 }}
+                              animate={{ height: `${Math.max(4, score * 100)}%` }}
+                              transition={{ duration: 0.6, delay: round * 0.08, ease: "easeOut" }}
+                            />
+                            <span className="text-[9px] font-mono text-text-muted">R{round}</span>
+                          </div>
+                        ))}
                       </div>
-                      {round.interaction_summary && (
-                        <p className="text-xs text-text-secondary mb-3 leading-relaxed">{round.interaction_summary}</p>
-                      )}
-                      {(round.agent1_statement || round.agent2_statement) && (
-                        <div className="space-y-2 mb-3">
-                          {round.agent1_statement && (
-                            <div className="flex gap-2">
-                              <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold" style={{ background: `${color1}25`, color: color1 }}>
-                                {round.agent1_name[0]}
-                              </div>
-                              <div className="text-[11px] text-text-secondary italic leading-relaxed border-l-2 pl-2" style={{ borderColor: `${color1}40` }}>
-                                &ldquo;{round.agent1_statement}&rdquo;
-                              </div>
-                            </div>
-                          )}
-                          {round.agent2_statement && (
-                            <div className="flex gap-2">
-                              <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold" style={{ background: `${color2}25`, color: color2 }}>
-                                {round.agent2_name[0]}
-                              </div>
-                              <div className="text-[11px] text-text-secondary italic leading-relaxed border-l-2 pl-2" style={{ borderColor: `${color2}40` }}>
-                                &ldquo;{round.agent2_statement}&rdquo;
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {round.emergent_claims?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border">
-                          {round.emergent_claims.map((claim, ci) => (
-                            <span key={ci} className="text-[10px] px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
-                              {claim}
+                      <div className="flex justify-between text-[9px] text-text-muted mt-1">
+                        <span>Divergent</span>
+                        <span className="text-text-muted">Claim convergence per round</span>
+                        <span>Consensus</span>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* View toggle */}
+                <div className="flex items-center gap-1.5 p-1 bg-white/4 rounded-lg w-fit">
+                  <button
+                    onClick={() => setSimViewMode("rounds")}
+                    className={`text-[11px] px-3 py-1.5 rounded-md transition-all ${simViewMode === "rounds" ? "bg-accent/20 text-accent" : "text-text-muted hover:text-text-secondary"}`}
+                  >
+                    By Round
+                  </button>
+                  <button
+                    onClick={() => setSimViewMode("agents")}
+                    className={`text-[11px] px-3 py-1.5 rounded-md transition-all flex items-center gap-1.5 ${simViewMode === "agents" ? "bg-accent/20 text-accent" : "text-text-muted hover:text-text-secondary"}`}
+                  >
+                    <Users className="w-3 h-3" />
+                    By Agent
+                  </button>
+                </div>
+
+                {simViewMode === "rounds" ? (
+                  // ── Round-first view ──
+                  roundEvents.map((round, i) => {
+                    const color1 = AGENT_COLORS[(agents as AgentPersona[]).findIndex((a) => a.name === round.agent1_name) % AGENT_COLORS.length] || AGENT_COLORS[0];
+                    const color2 = AGENT_COLORS[(agents as AgentPersona[]).findIndex((a) => a.name === round.agent2_name) % AGENT_COLORS.length] || AGENT_COLORS[1];
+                    return (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                      >
+                        <Card>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/6 text-text-muted">
+                              Round {round.round}
                             </span>
-                          ))}
-                        </div>
-                      )}
-                    </Card>
-                  </motion.div>
-                );
-              })
+                            <span className="text-[11px] font-semibold" style={{ color: color1 }}>{round.agent1_name}</span>
+                            <span className="text-[10px] text-text-muted">×</span>
+                            <span className="text-[11px] font-semibold" style={{ color: color2 }}>{round.agent2_name}</span>
+                          </div>
+                          {round.interaction_summary && (
+                            <p className="text-xs text-text-secondary mb-3 leading-relaxed">{round.interaction_summary}</p>
+                          )}
+                          {(round.agent1_statement || round.agent2_statement) && (
+                            <div className="space-y-2 mb-3">
+                              {round.agent1_statement && (
+                                <div className="flex gap-2">
+                                  <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold" style={{ background: `${color1}25`, color: color1 }}>
+                                    {round.agent1_name[0]}
+                                  </div>
+                                  <div className="text-[11px] text-text-secondary italic leading-relaxed border-l-2 pl-2" style={{ borderColor: `${color1}40` }}>
+                                    &ldquo;{round.agent1_statement}&rdquo;
+                                  </div>
+                                </div>
+                              )}
+                              {round.agent2_statement && (
+                                <div className="flex gap-2">
+                                  <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold" style={{ background: `${color2}25`, color: color2 }}>
+                                    {round.agent2_name[0]}
+                                  </div>
+                                  <div className="text-[11px] text-text-secondary italic leading-relaxed border-l-2 pl-2" style={{ borderColor: `${color2}40` }}>
+                                    &ldquo;{round.agent2_statement}&rdquo;
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {round.emergent_claims?.length > 0 && (
+                            <div className="pt-2 border-t border-border">
+                              <p className="text-[10px] text-text-muted mb-1.5 font-medium">Emergent claims · {round.emergent_claims.length}</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {round.emergent_claims.map((claim, ci) => {
+                                  const freq = claimFreqMap.get(claim) ?? 1;
+                                  return (
+                                    <span
+                                      key={ci}
+                                      className="text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1"
+                                      style={freq > 1
+                                        ? { background: "rgba(99,91,255,0.12)", borderColor: "rgba(99,91,255,0.3)", color: "#635BFF" }
+                                        : { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)", color: "rgba(248,248,252,0.5)" }
+                                      }
+                                    >
+                                      {freq > 1 && <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" title="Recurring claim" />}
+                                      {claim}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                      </motion.div>
+                    );
+                  })
+                ) : (
+                  // ── Agent-first view ──
+                  Array.from(agentRoundMap.entries()).map(([agentName, agentRounds], ai) => {
+                    const agentData = (agents as AgentPersona[]).find(a => a.name === agentName);
+                    const color = AGENT_COLORS[ai % AGENT_COLORS.length];
+                    return (
+                      <motion.div key={agentName} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: ai * 0.06 }}>
+                        <Card>
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: `${color}25`, color }}>
+                              {agentName[0]}
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-text-primary">{agentName}</div>
+                              {agentData && <div className="text-[11px] text-text-muted">{agentData.role}</div>}
+                            </div>
+                            <div className="ml-auto text-[10px] font-mono text-text-muted">{agentRounds.length} rounds</div>
+                          </div>
+                          <div className="space-y-2.5 max-h-64 overflow-y-auto">
+                            {agentRounds.map((ev, ri) => {
+                              const isAgent1 = ev.agent1_name === agentName;
+                              const statement = isAgent1 ? ev.agent1_statement : ev.agent2_statement;
+                              const opponent = isAgent1 ? ev.agent2_name : ev.agent1_name;
+                              if (!statement) return null;
+                              return (
+                                <div key={ri} className="pl-2 border-l-2" style={{ borderColor: `${color}30` }}>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-white/6 text-text-muted">R{ev.round}</span>
+                                    <span className="text-[10px] text-text-muted">vs {opponent}</span>
+                                  </div>
+                                  <p className="text-[11px] text-text-secondary italic leading-relaxed">&ldquo;{statement}&rdquo;</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {agentData?.beliefs && agentData.beliefs.length > 0 && (
+                            <div className="mt-3 pt-2 border-t border-border">
+                              <p className="text-[10px] text-text-muted mb-1.5 font-medium">Final beliefs after simulation</p>
+                              <div className="space-y-1">
+                                {agentData.beliefs.slice(-3).map((belief, bi) => (
+                                  <div key={bi} className="flex items-start gap-1.5">
+                                    <div className="w-1 h-1 rounded-full mt-1.5 flex-shrink-0" style={{ background: color }} />
+                                    <p className="text-[11px] text-text-muted leading-relaxed">{belief}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                      </motion.div>
+                    );
+                  })
+                )}
+              </>
             ) : (
               <div className="text-center py-12 text-text-muted">
                 <p className="text-xs">Simulation data not available for this prediction.</p>
@@ -598,81 +827,170 @@ export function ResultsView() {
 
         {/* Evidence / Sources tab */}
         {activeTab === "evidence" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Evidence Sources</CardTitle>
-              <div className="flex items-center gap-1.5">
-                <FileSearch className="w-3.5 h-3.5 text-text-muted" />
-                <span className="text-xs font-mono text-text-muted">{evidence.length}</span>
-              </div>
-            </CardHeader>
-            {evidence.length > 0 ? (
-              <div className="space-y-2">
-                {evidence.map((item, i) => {
-                  const color = SOURCE_COLORS[item.source] || "#635BFF";
-                  return (
-                    <motion.div
-                      key={item.url}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-white/2 border border-border group hover:border-border-strong transition-colors"
-                    >
-                      <div
-                        className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5"
-                        style={{ background: `${color}20`, color }}
-                      >
-                        {item.source.replace(/_/g, " ").toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-text-primary line-clamp-2 leading-snug">{item.title}</p>
-                        {item.snippet && (
-                          <p className="text-[10px] text-text-muted leading-relaxed mt-1 line-clamp-2">{item.snippet}</p>
-                        )}
-                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                          <div className="flex items-center gap-1" title="Relevance score">
-                            <div className="h-1 w-12 bg-white/8 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full"
-                                style={{ width: `${Math.round(item.relevance_score * 100)}%`, background: color }}
-                              />
-                            </div>
-                            <span className="text-[10px] font-mono text-text-muted">
-                              {Math.round(item.relevance_score * 100)}% rel
-                            </span>
-                          </div>
-                          {item.credibility_score != null && (
-                            <span className="text-[10px] font-mono text-text-muted" title="Credibility score">
-                              {Math.round(item.credibility_score * 100)}% cred
-                            </span>
-                          )}
-                          {item.published_at && (
-                            <span className="text-[10px] text-text-muted truncate">
-                              {new Date(item.published_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                            </span>
-                          )}
+          <div className="space-y-3">
+            {/* Source distribution breakdown */}
+            {sourceBreakdown.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Source Distribution</CardTitle>
+                  <span className="text-[10px] font-mono text-text-muted">{evidence.length} items</span>
+                </CardHeader>
+                <div className="space-y-2 mt-1">
+                  {sourceBreakdown.map(([source, count]) => {
+                    const color = SOURCE_COLORS[source] || "#635BFF";
+                    const pct = Math.round((count / evidence.length) * 100);
+                    return (
+                      <div key={source} className="flex items-center gap-2">
+                        <div className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 w-24" style={{ background: `${color}18`, color }}>
+                          {source.replace(/_/g, " ").toUpperCase()}
                         </div>
+                        <div className="flex-1 h-1.5 bg-white/6 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full"
+                            style={{ background: color }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct}%` }}
+                            transition={{ duration: 0.6, ease: "easeOut" }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-mono text-text-muted w-10 text-right">{count} · {pct}%</span>
                       </div>
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-1 hover:text-accent"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <FileSearch className="w-8 h-8 text-text-muted/30 mx-auto mb-2" />
-                <p className="text-xs text-text-muted">No evidence collected.</p>
-                <p className="text-[11px] text-text-muted/60 mt-1">Enable &ldquo;Collect Evidence&rdquo; in settings to gather sources.</p>
-              </div>
+                    );
+                  })}
+                </div>
+              </Card>
             )}
-          </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Evidence Sources</CardTitle>
+                <div className="flex items-center gap-1.5">
+                  <FileSearch className="w-3.5 h-3.5 text-text-muted" />
+                  <span className="text-xs font-mono text-text-muted">{evidence.length}</span>
+                </div>
+              </CardHeader>
+              {evidence.length > 0 ? (
+                <div className="space-y-2">
+                  {evidence.map((item, i) => {
+                    const color = SOURCE_COLORS[item.source] || "#635BFF";
+                    const isExpanded = expandedItems.has(i);
+                    const sentimentVal = (item as any).sentiment as number | null | undefined;
+                    const entities = (item as any).entities as string[] | undefined;
+                    return (
+                      <motion.div
+                        key={item.url}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.03 }}
+                        className="p-3 rounded-lg bg-white/2 border border-border group hover:border-border-strong transition-colors"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5"
+                            style={{ background: `${color}20`, color }}
+                          >
+                            {item.source.replace(/_/g, " ").toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-text-primary line-clamp-2 leading-snug">{item.title}</p>
+                            {item.snippet && (
+                              <div>
+                                <p className={`text-[10px] text-text-muted leading-relaxed mt-1 ${isExpanded ? "" : "line-clamp-2"}`}>{item.snippet}</p>
+                                {item.snippet.length > 120 && (
+                                  <button
+                                    onClick={() => setExpandedItems(prev => {
+                                      const next = new Set(prev);
+                                      isExpanded ? next.delete(i) : next.add(i);
+                                      return next;
+                                    })}
+                                    className="text-[10px] text-accent hover:text-accent/80 mt-0.5 transition-colors"
+                                  >
+                                    {isExpanded ? "Show less" : "Show more"}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Sentiment bar */}
+                            {sentimentVal != null && (
+                              <div className="mt-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[9px] text-text-muted w-12 flex-shrink-0">
+                                    {sentimentVal > 0.2 ? "Bullish" : sentimentVal < -0.2 ? "Bearish" : "Neutral"}
+                                  </span>
+                                  <div className="flex-1 h-1 bg-white/8 rounded-full relative overflow-hidden">
+                                    {/* Center marker */}
+                                    <div className="absolute left-1/2 top-0 w-px h-full bg-white/20" />
+                                    {/* Fill from center */}
+                                    <motion.div
+                                      className="absolute top-0 h-full rounded-full"
+                                      style={{
+                                        background: sentimentVal > 0 ? "#10B981" : "#EF4444",
+                                        left: sentimentVal > 0 ? "50%" : `${50 + sentimentVal * 50}%`,
+                                        width: `${Math.abs(sentimentVal) * 50}%`,
+                                      }}
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${Math.abs(sentimentVal) * 50}%` }}
+                                      transition={{ duration: 0.5, ease: "easeOut" }}
+                                    />
+                                  </div>
+                                  <span className="text-[9px] font-mono text-text-muted w-10 text-right">
+                                    {sentimentVal > 0 ? "+" : ""}{sentimentVal.toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Entity tags */}
+                            {entities && entities.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {entities.slice(0, 5).map((entity, ei) => (
+                                  <span key={ei} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/6 text-text-muted border border-white/8">
+                                    {entity}
+                                  </span>
+                                ))}
+                                {entities.length > 5 && (
+                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/4 text-text-muted">
+                                    +{entities.length - 5} more
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                              <div className="flex items-center gap-1" title="Relevance score">
+                                <div className="h-1 w-12 bg-white/8 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full" style={{ width: `${Math.round(item.relevance_score * 100)}%`, background: color }} />
+                                </div>
+                                <span className="text-[10px] font-mono text-text-muted">{Math.round(item.relevance_score * 100)}% rel</span>
+                              </div>
+                              {item.credibility_score != null && (
+                                <span className="text-[10px] font-mono text-text-muted">{Math.round(item.credibility_score * 100)}% cred</span>
+                              )}
+                              {item.published_at && (
+                                <span className="text-[10px] text-text-muted truncate">
+                                  {new Date(item.published_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-1 hover:text-accent">
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileSearch className="w-8 h-8 text-text-muted/30 mx-auto mb-2" />
+                  <p className="text-xs text-text-muted">No evidence collected.</p>
+                  <p className="text-[11px] text-text-muted/60 mt-1">Enable &ldquo;Collect Evidence&rdquo; in settings to gather sources.</p>
+                </div>
+              )}
+            </Card>
+          </div>
         )}
 
         {/* Agents tab */}
