@@ -45,7 +45,7 @@ export default function SettingsPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-text-secondary">Agent count</span>
-                <span className="text-xs font-mono text-text-primary">
+                <span className="text-xs font-mono text-accent">
                   {agentCount}
                 </span>
               </div>
@@ -57,13 +57,17 @@ export default function SettingsPage() {
                 onChange={(e) => setAgentCount(Number(e.target.value))}
                 className="w-full accent-accent"
               />
+              <div className="flex justify-between mt-0.5">
+                <span className="text-[10px] text-text-muted">4 · Fast</span>
+                <span className="text-[10px] text-text-muted">16 · Thorough</span>
+              </div>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-text-secondary">
                   Simulation rounds
                 </span>
-                <span className="text-xs font-mono text-text-primary">
+                <span className="text-xs font-mono text-accent">
                   {rounds}
                 </span>
               </div>
@@ -75,6 +79,10 @@ export default function SettingsPage() {
                 onChange={(e) => setRounds(Number(e.target.value))}
                 className="w-full accent-accent"
               />
+              <div className="flex justify-between mt-0.5">
+                <span className="text-[10px] text-text-muted">2 · Quick</span>
+                <span className="text-[10px] text-text-muted">10 · Deep</span>
+              </div>
             </div>
           </div>
         </Card>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { usePredictionStore } from "@/lib/stores/predictionStore";
 import {
   BrainCircuit,
   Network,
@@ -23,6 +24,8 @@ const links = [
 
 export function Navigation() {
   const pathname = usePathname();
+  const predictionStatus = usePredictionStore((s) => s.status);
+  const isRunning = predictionStatus === "running";
 
   return (
     <>
@@ -72,6 +75,12 @@ export function Navigation() {
                     className={cn("relative w-3.5 h-3.5 transition-colors duration-200", active && "text-accent")}
                   />
                   <span className="relative">{label}</span>
+                  {href === "/predict" && isRunning && !active && (
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-warning" />
+                    </span>
+                  )}
                 </Link>
               );
             })}

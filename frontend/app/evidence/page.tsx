@@ -304,10 +304,13 @@ function CredibilityMatrix({ items }: { items: EvidenceItem[] }) {
 
 // --- Main page ---
 
+type SortKey = "relevance" | "credibility" | "sentiment";
+
 export default function EvidencePage() {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<EvidenceItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<SortKey>("relevance");
 
   const { newsApiKey, gNewsApiKey, alphaVantageKey } = useSettingsStore();
 
@@ -397,6 +400,22 @@ export default function EvidencePage() {
               <span className="text-sm text-text-secondary">
                 {items.length} items collected
               </span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1">
+                  {(["relevance", "credibility", "sentiment"] as SortKey[]).map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => setSortBy(key)}
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-mono capitalize transition-colors ${
+                        sortBy === key
+                          ? "bg-accent/15 text-accent border border-accent/30"
+                          : "text-text-muted hover:text-text-secondary border border-transparent"
+                      }`}
+                    >
+                      {key}
+                    </button>
+                  ))}
+                </div>
               <div className="flex gap-2 flex-wrap">
                 {["arxiv", "hn", "reddit", "web", "newsapi", "gnews"].map((src) => {
                   const count = items.filter((i) => i.source === src).length;
@@ -415,10 +434,18 @@ export default function EvidencePage() {
                   );
                 })}
               </div>
+              </div>
             </div>
 
             <div className="space-y-3">
-              {items.map((item, i) => (
+              {[...items]
+                .sort((a, b) => {
+                  if (sortBy === "relevance") return b.relevance_score - a.relevance_score;
+                  if (sortBy === "credibility") return b.credibility_score - a.credibility_score;
+                  // sentiment: positive first (null treated as 0)
+                  return (b.sentiment ?? 0) - (a.sentiment ?? 0);
+                })
+                .map((item, i) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 8 }}
@@ -455,6 +482,9 @@ export default function EvidencePage() {
                           ))}
                         <span className="text-xs font-mono text-accent">
                           {Math.round(item.relevance_score * 100)}% rel
+                        </span>
+                        <span className="text-xs font-mono text-text-muted">
+                          {Math.round(item.credibility_score * 100)}% cred
                         </span>
                         <a
                           href={item.url}

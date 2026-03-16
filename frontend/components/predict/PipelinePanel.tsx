@@ -5,7 +5,7 @@ import { usePredictionStore } from "@/lib/stores/predictionStore";
 import { Progress } from "@/components/ui/Progress";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { CheckCircle, Circle, Loader2 } from "lucide-react";
+import { CheckCircle, Circle, Loader2, Clock } from "lucide-react";
 
 const phases = [
   { id: "evidence", label: "Evidence Collection" },
@@ -18,6 +18,7 @@ const phases = [
 
 function useElapsedTime(running: boolean) {
   const [elapsed, setElapsed] = useState(0);
+  const [finalElapsed, setFinalElapsed] = useState<number | null>(null);
   const startRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -25,23 +26,34 @@ function useElapsedTime(running: boolean) {
     if (running) {
       startRef.current = Date.now();
       setElapsed(0);
+      setFinalElapsed(null);
       timerRef.current = setInterval(() => {
         setElapsed(Math.floor((Date.now() - (startRef.current ?? Date.now())) / 1000));
       }, 1000);
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        if (startRef.current) {
+          setFinalElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+        }
+      }
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [running]);
 
-  return elapsed;
+  return { elapsed, finalElapsed };
+}
+
+function formatDuration(s: number): string {
+  if (s >= 60) return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
+  return `${s}s`;
 }
 
 export function PipelinePanel() {
   const { status, events, progress, currentPhase } = usePredictionStore();
-  const elapsed = useElapsedTime(status === "running");
+  const { elapsed, finalElapsed } = useElapsedTime(status === "running");
 
   if (status === "idle") return null;
 
@@ -61,7 +73,13 @@ export function PipelinePanel() {
           <span className="text-sm font-semibold">Pipeline Progress</span>
           {status === "running" && elapsed > 0 && (
             <span className="text-[10px] font-mono text-text-muted tabular-nums">
-              {elapsed}s
+              {formatDuration(elapsed)}
+            </span>
+          )}
+          {status === "complete" && finalElapsed != null && finalElapsed > 0 && (
+            <span className="text-[10px] font-mono text-success/70 tabular-nums flex items-center gap-1">
+              <Clock className="w-2.5 h-2.5" />
+              {formatDuration(finalElapsed)}
             </span>
           )}
         </div>

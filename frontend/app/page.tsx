@@ -407,18 +407,20 @@ export default function Home() {
               }}
               whileHover={{ y: -2 }}
             >
-              <Card className="flex items-center justify-between gap-3 hover:border-border-strong transition-all duration-200 hover:shadow-[0_0_20px_rgba(99,91,255,0.12)]">
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                  <Badge variant="muted" className="flex-shrink-0">
-                    {ex.domain}
-                  </Badge>
-                  <span className="text-sm truncate">{ex.query}</span>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <ConfidenceBar score={ex.confidence} />
-                  <ChevronRight className="w-4 h-4 text-text-muted" />
-                </div>
-              </Card>
+              <Link href={`/predict?query=${encodeURIComponent(ex.query)}`}>
+                <Card className="flex items-center justify-between gap-3 hover:border-accent/40 transition-all duration-200 hover:shadow-[0_0_20px_rgba(99,91,255,0.15)] cursor-pointer group">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <Badge variant="muted" className="flex-shrink-0">
+                      {ex.domain}
+                    </Badge>
+                    <span className="text-sm truncate group-hover:text-text-primary transition-colors">{ex.query}</span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <ConfidenceBar score={ex.confidence} />
+                    <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all duration-200" />
+                  </div>
+                </Card>
+              </Link>
             </motion.div>
           ))}
         </div>

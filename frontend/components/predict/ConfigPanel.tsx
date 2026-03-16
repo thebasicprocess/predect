@@ -132,9 +132,14 @@ export function ConfigPanel({
           >
             {loading ? "Running..." : "Run Prediction"}
           </Button>
-          <p className="text-[10px] text-text-muted text-center font-mono select-none">
-            ⌘↵ to run
-          </p>
+          <div className="flex items-center justify-between px-0.5">
+            <p className="text-[10px] text-text-muted font-mono select-none">⌘↵ to run</p>
+            {!loading && query.trim() && (
+              <p className="text-[10px] text-text-muted select-none">
+                ~{Math.max(1, Math.round((agentCount * rounds) / 10))}–{Math.max(2, Math.round((agentCount * rounds) / 6))} min
+              </p>
+            )}
+          </div>
         </div>
       </Card>
 
@@ -188,7 +193,7 @@ export function ConfigPanel({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-text-secondary">Agents</span>
-              <span className="text-xs font-mono text-text-primary">
+              <span className="text-xs font-mono text-accent">
                 {agentCount}
               </span>
             </div>
@@ -200,11 +205,15 @@ export function ConfigPanel({
               onChange={(e) => setAgentCount(Number(e.target.value))}
               className="w-full accent-accent"
             />
+            <div className="flex justify-between mt-0.5">
+              <span className="text-[10px] text-text-muted">4 · Fast</span>
+              <span className="text-[10px] text-text-muted">16 · Thorough</span>
+            </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-text-secondary">Rounds</span>
-              <span className="text-xs font-mono text-text-primary">
+              <span className="text-xs font-mono text-accent">
                 {rounds}
               </span>
             </div>
@@ -216,6 +225,10 @@ export function ConfigPanel({
               onChange={(e) => setRounds(Number(e.target.value))}
               className="w-full accent-accent"
             />
+            <div className="flex justify-between mt-0.5">
+              <span className="text-[10px] text-text-muted">2 · Quick</span>
+              <span className="text-[10px] text-text-muted">10 · Deep</span>
+            </div>
           </div>
         </div>
       </Card>
