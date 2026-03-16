@@ -760,7 +760,10 @@ export default function HistoryPage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  router.push(`/predict?query=${encodeURIComponent(p.query)}`);
+                                  const params = new URLSearchParams({ query: p.query });
+                                  if (p.domain) params.set("domain", p.domain);
+                                  if (p.time_horizon) params.set("time_horizon", p.time_horizon);
+                                  router.push(`/predict?${params.toString()}`);
                                 }}
                                 className="p-1.5 rounded-md hover:bg-accent/15 hover:text-accent text-text-muted"
                                 title="Re-run this prediction"

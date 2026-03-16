@@ -39,12 +39,14 @@ function PredictPageInner() {
   const router = useRouter();
   const viewId = searchParams.get("view");
   const queryParam = searchParams.get("query");
+  const domainParam = searchParams.get("domain");
+  const timeHorizonParam = searchParams.get("time_horizon");
 
   const { agentCount, rounds, newsApiKey, gNewsApiKey, defaultDomain, defaultTimeHorizon } = useSettingsStore();
 
   const [query, setQueryLocal] = useState(queryParam ? decodeURIComponent(queryParam) : "");
-  const [domain, setDomain] = useState(defaultDomain || "general");
-  const [timeHorizon, setTimeHorizon] = useState(defaultTimeHorizon || "6 months");
+  const [domain, setDomain] = useState(domainParam || defaultDomain || "general");
+  const [timeHorizon, setTimeHorizon] = useState(timeHorizonParam || defaultTimeHorizon || "6 months");
   const [activeTab, setActiveTab] = useState<Tab>("configure");
   const [recentPredictions, setRecentPredictions] = useState<HistoryItem[]>([]);
 
