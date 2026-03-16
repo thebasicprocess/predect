@@ -103,7 +103,10 @@ async def _run_pair(
     prior_context = ""
     if prior_claims and round_num > 1:
         top_claims = prior_claims[:6]
-        prior_context = f"\nClaims that emerged in prior rounds:\n" + "\n".join(f"- {c}" for c in top_claims) + "\n"
+        claims_label = "Key recurring claims (MUST react to at least one of these):" if round_num <= 2 else "Still-contested claims (focus on resolving these, don't repeat settled points):"
+        prior_context = f"\n{claims_label}\n" + "\n".join(f"- {c}" for c in top_claims) + "\n"
+        if round_num >= 3:
+            prior_context += "\nThis is a late round — dig deeper, challenge assumptions, and move beyond surface-level disagreements.\n"
 
     # Round 1: inject key evidence snippets so agents can cite concrete data
     evidence_context = ""
