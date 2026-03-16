@@ -37,4 +37,4 @@ app.include_router(orchestrator.router, prefix="/api/orchestrator", tags=["orche
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "service": "PREDECT"}
+    return {"status": "ok", "service": "PREDECT", "version": "2.0.0", "key_set": bool(os.getenv("ZAI_API_KEY"))}
