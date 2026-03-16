@@ -81,15 +81,14 @@ function GraphPageInner() {
     });
   };
 
-  // Edges connected to the selected node (up to 3)
-  const connectedEdges: Array<{ edge: GraphEdge; connectedNode: GraphNode }> =
+  // All edges connected to the selected node
+  const allConnectedEdges: Array<{ edge: GraphEdge; connectedNode: GraphNode }> =
     selected
       ? edges
           .filter(
             (e) =>
               e.source_id === selected.id || e.target_id === selected.id
           )
-          .slice(0, 3)
           .map((e) => {
             const connectedId =
               e.source_id === selected.id ? e.target_id : e.source_id;
@@ -98,6 +97,8 @@ function GraphPageInner() {
           })
           .filter((item): item is { edge: GraphEdge; connectedNode: GraphNode } => item !== null)
       : [];
+
+  const connectedEdges = allConnectedEdges.slice(0, 5);
 
   return (
     <div className="flex flex-col md:flex-row md:h-[calc(100vh-56px)] md:overflow-hidden">
@@ -330,8 +331,9 @@ function GraphPageInner() {
                   {/* Connections section */}
                   {connectedEdges.length > 0 && (
                     <div>
-                      <div className="text-xs text-text-muted mb-1.5">
-                        Connections
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="text-xs text-text-muted">Connections</div>
+                        <div className="text-[10px] font-mono text-text-muted">{allConnectedEdges.length} total</div>
                       </div>
                       <div className="space-y-1.5">
                         {connectedEdges.map(({ edge, connectedNode }) => (
@@ -358,6 +360,11 @@ function GraphPageInner() {
                             <ArrowRight className="w-3 h-3 text-text-muted opacity-0 group-hover:opacity-100 flex-shrink-0 transition-opacity" />
                           </button>
                         ))}
+                        {allConnectedEdges.length > 5 && (
+                          <p className="text-[10px] text-text-muted text-center pt-1">
+                            +{allConnectedEdges.length - 5} more connections
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
