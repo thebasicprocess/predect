@@ -123,13 +123,24 @@ Return JSON: {{"refined_query": "...", "was_refined": true/false}}""",
         graph_result = {"entities": []}
         if entity_list:
             try:
+                domain_type_hint = {
+                    "finance": "In finance/markets: policy decisions/rate changes/earnings = Event; companies/banks/funds = Organization; price movements/metrics = Concept",
+                    "technology": "In tech: product launches/releases = Event; companies/platforms = Organization; technologies/frameworks/protocols = Concept",
+                    "politics": "In politics: elections/votes/treaties = Event; parties/governments/agencies = Organization; policies/ideologies = Concept",
+                    "science": "In science: studies/trials/discoveries = Event; institutions/journals = Organization; theories/methods/diseases = Concept",
+                    "crypto": "In crypto: protocol upgrades/hacks/launches = Event; exchanges/DAOs/projects = Organization; tokens/chains/metrics = Concept",
+                    "climate": "In climate: extreme weather events/summits = Event; agencies/NGOs/companies = Organization; emissions metrics/technologies = Concept",
+                }.get(request.domain or "general", "Use best judgement for entity classification")
                 graph_result, _ = await llm_call_json_with_usage(
                     "graph_construction",
-                    system_prompt="You are a knowledge graph builder. Classify entities into typed nodes and identify relationships. Output valid JSON only.",
+                    system_prompt="You are a knowledge graph builder. Classify entities into precise typed nodes and identify relationships. Prefer specific types over generic Concept. Output valid JSON only.",
                     user_prompt=f"""Query: {working_query}
+Domain: {request.domain or "general"}
 Entities found in evidence: {', '.join(entity_list)}
 
-Classify each entity and identify relationships between them.
+Domain classification hint: {domain_type_hint}
+
+Classify each entity precisely and identify key relationships.
 
 Return JSON:
 {{
@@ -137,11 +148,12 @@ Return JSON:
     {{"name": "Entity Name", "type": "Person|Organization|Event|Location|Concept", "relationship_to_query": "INVOLVES|AFFECTS|CAUSES|MENTIONS|RELATES_TO"}}
   ],
   "entity_edges": [
-    {{"source": "Entity A", "target": "Entity B", "relationship": "AFFILIATED_WITH|CAUSES|SUPPORTS|OPPOSES|LOCATED_IN|PART_OF"}}
+    {{"source": "Entity A", "target": "Entity B", "relationship": "AFFILIATED_WITH|CAUSES|SUPPORTS|OPPOSES|LOCATED_IN|PART_OF|REGULATES|COMPETES_WITH"}}
   ]
 }}
 
-Types: Person (named individual), Organization (company/gov/group), Event (incident/happening), Location (place/region), Concept (idea/term/trend)""",
+Types: Person (named individual), Organization (company/gov/group/party), Event (specific incident/decision/release), Location (place/region/country), Concept (metric/trend/idea/technology)
+Prefer Event for specific dated occurrences, Organization for named groups, Person for named individuals.""",
                 )
             except Exception:
                 graph_result = {"entities": [{"name": e, "type": "Concept", "relationship_to_query": "RELATES_TO"} for e in entity_list]}
