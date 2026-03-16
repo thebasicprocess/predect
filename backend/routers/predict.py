@@ -56,8 +56,19 @@ async def run_pipeline(prediction_id: str, request: PredictRequest):
             "data": {
                 "count": len(evidence_items),
                 "items": [
-                    {"title": e.title, "source": e.source, "relevance_score": e.relevance_score, "url": e.url, "snippet": e.snippet[:200] if e.snippet else "", "published_at": e.published_at}
-                    for e in evidence_items[:12]
+                    {
+                        "id": str(i),
+                        "title": e.title,
+                        "source": e.source,
+                        "relevance_score": e.relevance_score,
+                        "credibility_score": e.credibility_score,
+                        "sentiment": e.sentiment,
+                        "entities": e.entities or [],
+                        "url": e.url,
+                        "snippet": e.snippet[:300] if e.snippet else "",
+                        "published_at": e.published_at,
+                    }
+                    for i, e in enumerate(evidence_items)
                 ]
             }
         })

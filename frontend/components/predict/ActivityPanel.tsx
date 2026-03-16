@@ -1,6 +1,7 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePredictionStore } from "@/lib/stores/predictionStore";
+import { useSettingsStore } from "@/lib/stores/settingsStore";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Activity, Users, FileSearch, MessageSquare, ExternalLink, Zap } from "lucide-react";
 
@@ -37,6 +38,7 @@ const TIER_LABEL = { fast: "Fast", balanced: "Balanced", premium: "Premium" } as
 
 export function ActivityPanel() {
   const { events, agents, roundEvents, evidence, status } = usePredictionStore();
+  const { rounds: totalRounds } = useSettingsStore();
   const modelEvents = events.filter((e) => e.model && e.task);
 
   // Build a stable name → color index map from the agents array
@@ -141,15 +143,52 @@ export function ActivityPanel() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-text-secondary line-clamp-1 leading-tight">{item.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] font-mono text-text-muted">
-                        {Math.round(item.relevance_score * 100)}% rel
-                      </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      {/* Dual relevance + credibility bars */}
+                      <div className="w-16 flex flex-col gap-0.5 flex-shrink-0">
+                        <div className="h-0.5 w-full rounded-full bg-white/8 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-accent"
+                            style={{ width: `${Math.round(item.relevance_score * 100)}%` }}
+                          />
+                        </div>
+                        <div className="h-0.5 w-full rounded-full bg-white/8 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-[#10B981]"
+                            style={{ width: `${Math.round(item.credibility_score * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                      {/* Sentiment dot */}
+                      <div
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{
+                          background:
+                            (item.sentiment ?? 0) > 0.1
+                              ? "#10B981"
+                              : (item.sentiment ?? 0) < -0.1
+                              ? "#EF4444"
+                              : "#6B7280",
+                        }}
+                        title={`Sentiment: ${item.sentiment != null ? item.sentiment.toFixed(2) : "n/a"}`}
+                      />
+                      {/* First entity pill */}
+                      {item.entities && item.entities.length > 0 && (
+                        <span className="text-[9px] px-1 py-0.5 rounded bg-white/5 text-text-muted truncate max-w-[56px]">
+                          {item.entities[0]}
+                        </span>
+                      )}
+                      {/* External link inline */}
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-auto"
+                      >
+                        <ExternalLink className="w-3 h-3 text-text-muted" />
+                      </a>
                     </div>
                   </div>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                    <ExternalLink className="w-3 h-3 text-text-muted" />
-                  </a>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -186,7 +225,12 @@ export function ActivityPanel() {
                     {agent.name[0]}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-medium text-text-primary truncate">{agent.name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-medium text-text-primary truncate">{agent.name}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-text-muted font-mono flex-shrink-0">
+                        {agent.beliefs?.length ?? 0}
+                      </span>
+                    </div>
                     <div className="text-[10px] text-text-muted truncate">{agent.role}</div>
                     {agent.behavioral_bias && (
                       <div
@@ -219,6 +263,29 @@ export function ActivityPanel() {
               <span className="text-xs font-mono text-text-muted">{roundEvents.length}</span>
             </div>
           </CardHeader>
+          {/* Round progress header */}
+          {(() => {
+            const maxRound = Math.max(...roundEvents.map((e) => e.round));
+            const progress = Math.min(maxRound / totalRounds, 1);
+            return (
+              <div className="px-1 pb-2 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-text-muted">
+                    Round <span className="text-accent">{maxRound}</span> / {totalRounds}
+                  </span>
+                  <span className="text-[10px] font-mono text-text-muted">
+                    {Math.round(progress * 100)}%
+                  </span>
+                </div>
+                <div className="h-0.5 w-full rounded-full bg-white/8 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-accent transition-all duration-500"
+                    style={{ width: `${Math.round(progress * 100)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
           <div className="space-y-4 max-h-[520px] overflow-y-auto">
             <AnimatePresence>
               {roundEvents.map((ev, i) => {
