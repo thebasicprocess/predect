@@ -18,6 +18,8 @@ import {
   Calendar,
   Share2,
   Check,
+  ExternalLink,
+  FileSearch,
 } from "lucide-react";
 
 interface PredictionResult {
@@ -48,13 +50,25 @@ const TABS = [
   { id: "drivers", label: "Drivers" },
   { id: "timeline", label: "Timeline" },
   { id: "narratives", label: "Narratives" },
+  { id: "evidence", label: "Sources" },
   { id: "agents", label: "Agents" },
 ];
+
+const SOURCE_COLORS: Record<string, string> = {
+  arxiv: "#635BFF",
+  hn: "#F59E0B",
+  reddit: "#EF4444",
+  google_news: "#10B981",
+  wikipedia: "#60A5FA",
+  newsapi: "#A78BFA",
+  gnews: "#EC4899",
+  web: "#F97316",
+};
 
 const AGENT_COLORS = ["#635BFF", "#10B981", "#F59E0B", "#EF4444", "#60A5FA", "#A78BFA", "#EC4899", "#F97316"];
 
 export function ResultsView() {
-  const { result, status, predictionId, agents, roundEvents } = usePredictionStore();
+  const { result, status, predictionId, agents, roundEvents, evidence } = usePredictionStore();
   const [activeTab, setActiveTab] = useState("report");
   const [copied, setCopied] = useState(false);
 
@@ -367,6 +381,72 @@ export function ResultsView() {
               <p className="text-xs text-text-muted">
                 No dominant narratives detected.
               </p>
+            )}
+          </Card>
+        )}
+
+        {/* Evidence / Sources tab */}
+        {activeTab === "evidence" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Evidence Sources</CardTitle>
+              <div className="flex items-center gap-1.5">
+                <FileSearch className="w-3.5 h-3.5 text-text-muted" />
+                <span className="text-xs font-mono text-text-muted">{evidence.length}</span>
+              </div>
+            </CardHeader>
+            {evidence.length > 0 ? (
+              <div className="space-y-2">
+                {evidence.map((item, i) => {
+                  const color = SOURCE_COLORS[item.source] || "#635BFF";
+                  return (
+                    <motion.div
+                      key={item.url}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-white/2 border border-border group hover:border-border-strong transition-colors"
+                    >
+                      <div
+                        className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5"
+                        style={{ background: `${color}20`, color }}
+                      >
+                        {item.source.replace("_", " ").toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-text-primary line-clamp-2 leading-snug">{item.title}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <div className="flex items-center gap-1">
+                            <div className="h-1 w-16 bg-white/8 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full"
+                                style={{ width: `${Math.round(item.relevance_score * 100)}%`, background: color }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-mono text-text-muted">
+                              {Math.round(item.relevance_score * 100)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-1 hover:text-accent"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileSearch className="w-8 h-8 text-text-muted/30 mx-auto mb-2" />
+                <p className="text-xs text-text-muted">No evidence collected.</p>
+                <p className="text-[11px] text-text-muted/60 mt-1">Enable &ldquo;Collect Evidence&rdquo; in settings to gather sources.</p>
+              </div>
             )}
           </Card>
         )}

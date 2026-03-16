@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 import re
@@ -73,9 +74,23 @@ async def llm_call_with_usage(
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
 
-    response = await client.chat.completions.create(**kwargs)
-    tokens = response.usage.total_tokens if response.usage else 0
-    return response.choices[0].message.content or "", tokens
+    last_err = None
+    for attempt in range(3):
+        try:
+            response = await client.chat.completions.create(**kwargs)
+            content = response.choices[0].message.content or ""
+            tokens = response.usage.total_tokens if response.usage else 0
+            if content.strip():
+                return content, tokens
+            if attempt < 2:
+                await asyncio.sleep(1)
+        except Exception as e:
+            last_err = e
+            if attempt < 2:
+                await asyncio.sleep(2 ** attempt)
+    if last_err:
+        raise last_err
+    raise ValueError(f"LLM returned empty content after 3 attempts for task={task}")
 
 
 async def llm_call(

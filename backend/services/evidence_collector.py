@@ -174,6 +174,71 @@ Return only valid JSON."""
     return enriched
 
 
+async def collect_google_news(query: str, max_results: int = 8) -> List[EvidenceItem]:
+    """Collect from Google News RSS — no API key needed."""
+    url = f"https://news.google.com/rss/search?q={quote(query)}&hl=en-US&gl=US&ceid=US:en"
+    try:
+        headers = {"User-Agent": "Mozilla/5.0 PREDECT/1.0"}
+        async with httpx.AsyncClient(timeout=12.0, headers=headers) as client:
+            resp = await client.get(url)
+        root = ET.fromstring(resp.text)
+        items = []
+        for item in root.findall(".//item")[:max_results]:
+            title_el = item.find("title")
+            link_el = item.find("link")
+            desc_el = item.find("description")
+            pub_el = item.find("pubDate")
+            if title_el is None or link_el is None:
+                continue
+            title = title_el.text or ""
+            url_str = link_el.text or ""
+            snippet = ""
+            if desc_el is not None and desc_el.text:
+                from html import unescape
+                raw = unescape(desc_el.text)
+                soup = BeautifulSoup(raw, "html.parser")
+                snippet = soup.get_text()[:500]
+            items.append(EvidenceItem(
+                id=hashlib.md5(url_str.encode()).hexdigest(),
+                title=title.strip(),
+                url=url_str,
+                source="google_news",
+                snippet=snippet or title,
+                credibility_score=0.75,
+                relevance_score=0.8,
+                published_at=pub_el.text if pub_el is not None else None,
+            ))
+        return items
+    except Exception:
+        return []
+
+
+async def collect_wikipedia(query: str) -> List[EvidenceItem]:
+    """Collect Wikipedia summary — good for factual background."""
+    try:
+        search_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{quote(query.replace(' ', '_'))}"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(search_url)
+        if resp.status_code == 200:
+            data = resp.json()
+            title = data.get("title", "")
+            extract = data.get("extract", "")[:600]
+            page_url = data.get("content_urls", {}).get("desktop", {}).get("page", "")
+            if extract and page_url:
+                return [EvidenceItem(
+                    id=hashlib.md5(page_url.encode()).hexdigest(),
+                    title=f"Wikipedia: {title}",
+                    url=page_url,
+                    source="wikipedia",
+                    snippet=extract,
+                    credibility_score=0.85,
+                    relevance_score=0.7,
+                )]
+    except Exception:
+        pass
+    return []
+
+
 async def collect_newsapi(query: str, api_key: str, max_results: int = 5) -> List[EvidenceItem]:
     """Collect from NewsAPI.org — only runs when caller provides an API key."""
     try:
@@ -249,6 +314,8 @@ async def collect_evidence(
         collect_arxiv(query, max_results=5),
         collect_hn(query, max_results=5),
         collect_reddit(query, max_results=5),
+        collect_google_news(query, max_results=8),
+        collect_wikipedia(query),
     ]
     if news_api_key:
         tasks.append(collect_newsapi(query, news_api_key, max_results=5))

@@ -11,6 +11,8 @@ const sourceColors: Record<string, string> = {
   web: "#10B981",
   newsapi: "#60A5FA",
   gnews: "#A78BFA",
+  google_news: "#10B981",
+  wikipedia: "#60A5FA",
 };
 
 const agentColors = ["#635BFF", "#10B981", "#F59E0B", "#EF4444", "#60A5FA", "#A78BFA", "#EC4899", "#F97316"];
