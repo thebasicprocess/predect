@@ -118,9 +118,12 @@ async def _run_pair(
     a2_beliefs = agent2.beliefs[-3:] if agent2.beliefs else agent2.beliefs
 
     domain_hint = DOMAIN_DEBATE_HINTS.get(domain, DOMAIN_DEBATE_HINTS["general"])
+    # Later rounds use lower temperature: encourages analytical depth over creative variance
+    round_temp = max(0.4, 0.75 - (round_num - 1) * 0.07)
     result, tokens = await llm_call_json_with_usage(
         "simulation_round",
         system_prompt=f"You are simulating a debate between expert agents analyzing a prediction topic. Make statements specific, grounded in mechanisms and data, not vague assertions. {domain_hint}",
+        temperature=round_temp,
         user_prompt=f"""Round {round_num}. Topic: {topic}
 {prior_context}{evidence_context}
 Agent 1: {agent1.name} ({agent1.role})

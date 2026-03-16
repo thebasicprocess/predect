@@ -52,11 +52,17 @@ TASK_TEMPERATURE: dict[str, float] = {
 }
 
 
+_client: Optional[AsyncOpenAI] = None
+
+
 def get_client() -> AsyncOpenAI:
-    return AsyncOpenAI(
-        api_key=os.getenv("ZAI_API_KEY", ""),
-        base_url=os.getenv("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4/"),
-    )
+    global _client
+    if _client is None:
+        _client = AsyncOpenAI(
+            api_key=os.getenv("ZAI_API_KEY", ""),
+            base_url=os.getenv("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4/"),
+        )
+    return _client
 
 
 def get_model_for_task(task: str) -> str:
@@ -125,27 +131,35 @@ async def llm_call(
     return content
 
 
+def _repair_json(raw: str) -> str:
+    """Strip common LLM JSON artifacts: trailing commas, BOM, control chars."""
+    # Remove trailing commas before ] or }
+    raw = re.sub(r",\s*([}\]])", r"\1", raw)
+    # Remove BOM
+    raw = raw.lstrip("\ufeff")
+    return raw
+
+
 def _extract_json(raw: str) -> dict:
     """Try multiple strategies to extract a JSON object from raw text."""
-    # 1. Direct parse
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        pass
+    candidates = []
+    # 1. Raw response
+    candidates.append(raw)
     # 2. Markdown code block
     match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", raw)
     if match:
-        try:
-            return json.loads(match.group(1))
-        except json.JSONDecodeError:
-            pass
+        candidates.append(match.group(1))
     # 3. First {...} block (handles "Here is the JSON: {...}")
     match = re.search(r"\{[\s\S]*\}", raw)
     if match:
-        try:
-            return json.loads(match.group(0))
-        except json.JSONDecodeError:
-            pass
+        candidates.append(match.group(0))
+
+    for candidate in candidates:
+        for text in (candidate, _repair_json(candidate)):
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                pass
     raise ValueError(f"Could not parse JSON from LLM response: {raw[:300]}")
 
 
@@ -154,7 +168,7 @@ async def llm_call_json(task: str, system_prompt: str, user_prompt: str) -> dict
     return _extract_json(raw)
 
 
-async def llm_call_json_with_usage(task: str, system_prompt: str, user_prompt: str) -> Tuple[dict, int]:
+async def llm_call_json_with_usage(task: str, system_prompt: str, user_prompt: str, temperature: float | None = None) -> Tuple[dict, int]:
     """Returns (parsed_dict, total_tokens)."""
-    raw, tokens = await llm_call_with_usage(task, system_prompt, user_prompt, json_mode=True)
+    raw, tokens = await llm_call_with_usage(task, system_prompt, user_prompt, json_mode=True, temperature=temperature)
     return _extract_json(raw), tokens
