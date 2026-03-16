@@ -85,6 +85,7 @@ function PredictPageInner() {
     getPredictionResultFull(viewId)
       .then((data) => {
         if (data?.result) {
+          if (data.query) handleSetQuery(data.query);
           setResult(data.result);
           restoreFullData({
             result: data.result,

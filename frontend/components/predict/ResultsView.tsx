@@ -307,6 +307,7 @@ export function ResultsView() {
                       regulatory: "#F59E0B",
                       technical: "#10B981",
                       political: "#EF4444",
+                      social: "#EC4899",
                       general: "#60A5FA",
                     };
                     const catColor = catColors[ev.category] || "#60A5FA";
