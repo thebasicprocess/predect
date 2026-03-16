@@ -71,6 +71,7 @@ Return JSON: {{"refined_query": "...", "was_refined": true/false}}""",
                 news_api_key=request.news_api_key or None,
                 gnews_api_key=request.gnews_api_key or None,
                 alpha_vantage_key=request.alpha_vantage_key or None,
+                domain=request.domain or "general",
             )
 
         evidence_id = str(uuid.uuid4())

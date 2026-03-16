@@ -696,6 +696,51 @@ export function ResultsView() {
           </Card>
         )}
 
+        {/* Key Evidence card in Report tab */}
+        {activeTab === "report" && evidence.length > 0 && (() => {
+          const topEvidence = [...evidence]
+            .sort((a, b) => (b.relevance_score * (b.credibility_score ?? 0.5)) - (a.relevance_score * (a.credibility_score ?? 0.5)))
+            .slice(0, 3);
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle>Key Evidence</CardTitle>
+                <span className="text-[10px] font-mono text-text-muted">top {topEvidence.length} by impact</span>
+              </CardHeader>
+              <div className="space-y-2.5 mt-1">
+                {topEvidence.map((item, i) => {
+                  const color = SOURCE_COLORS[item.source] || "#635BFF";
+                  const sentimentVal = (item as Record<string, unknown>).sentiment as number | null | undefined;
+                  const impact = Math.round(item.relevance_score * (item.credibility_score ?? 0.5) * 100);
+                  return (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <div className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5" style={{ background: `${color}20`, color }}>
+                        {item.source.replace(/_/g, " ").toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-text-primary hover:text-accent transition-colors line-clamp-1 leading-snug">
+                          {item.title}
+                        </a>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-[10px] font-mono text-accent">{impact}% impact</span>
+                          {sentimentVal != null && (
+                            <span className="text-[10px] font-mono" style={{ color: sentimentVal > 0.2 ? "#10B981" : sentimentVal < -0.2 ? "#EF4444" : "#6B7280" }}>
+                              {sentimentVal > 0.2 ? "Bullish" : sentimentVal < -0.2 ? "Bearish" : "Neutral"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 p-1 text-text-muted hover:text-accent transition-colors">
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          );
+        })()}
+
         {/* Drivers tab */}
         {activeTab === "drivers" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -892,13 +937,27 @@ export function ResultsView() {
                         transition={{ delay: i * 0.04 }}
                       >
                         <Card>
-                          <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
                             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/6 text-text-muted">
                               Round {round.round}
                             </span>
                             <span className="text-[11px] font-semibold" style={{ color: color1 }}>{round.agent1_name}</span>
+                            {(() => {
+                              const agent1 = (agents as AgentPersona[]).find(a => a.name === round.agent1_name);
+                              const delta = agent1 ? round.belief_shifts?.[agent1.id] : undefined;
+                              if (delta == null) return null;
+                              const dColor = delta > 0.02 ? "#10B981" : delta < -0.02 ? "#EF4444" : "#6B7280";
+                              return <span className="text-[9px] font-mono px-1 py-0.5 rounded" style={{ background: `${dColor}18`, color: dColor }}>{delta > 0 ? "+" : ""}{(delta * 100).toFixed(0)}%</span>;
+                            })()}
                             <span className="text-[10px] text-text-muted">×</span>
                             <span className="text-[11px] font-semibold" style={{ color: color2 }}>{round.agent2_name}</span>
+                            {(() => {
+                              const agent2 = (agents as AgentPersona[]).find(a => a.name === round.agent2_name);
+                              const delta = agent2 ? round.belief_shifts?.[agent2.id] : undefined;
+                              if (delta == null) return null;
+                              const dColor = delta > 0.02 ? "#10B981" : delta < -0.02 ? "#EF4444" : "#6B7280";
+                              return <span className="text-[9px] font-mono px-1 py-0.5 rounded" style={{ background: `${dColor}18`, color: dColor }}>{delta > 0 ? "+" : ""}{(delta * 100).toFixed(0)}%</span>;
+                            })()}
                           </div>
                           {round.interaction_summary && (
                             <p className="text-xs text-text-secondary mb-2 leading-relaxed">{round.interaction_summary}</p>

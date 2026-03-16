@@ -143,45 +143,70 @@ async def scrape_url(url: str) -> str:
         return ""
 
 
-async def enrich_evidence(items: List[EvidenceItem], query: str) -> List[EvidenceItem]:
-    if not items:
-        return items
-
-    batch_text = "\n\n".join([f"[{i}] {item.title}: {item.snippet}" for i, item in enumerate(items)])
-
+async def _enrich_batch(
+    batch: List[EvidenceItem],
+    offset: int,
+    query: str,
+    domain: str = "general",
+) -> List[tuple[int, dict]]:
+    """Enrich a single batch; returns list of (global_index, scores) pairs."""
+    batch_text = "\n\n".join([
+        f"[{i}] [{item.source}] {item.title}: {(item.snippet or '')[:300]}"
+        for i, item in enumerate(batch)
+    ])
     try:
         result = await llm_call_json(
             "evidence_summarization",
-            system_prompt="You are an evidence analyst. Given a query and evidence items, score each item.",
+            system_prompt=(
+                "You are an evidence analyst. Score each evidence item for a prediction query. "
+                "Be discriminating: most items should score 0.3-0.7; only directly relevant, high-quality items score above 0.8."
+            ),
             user_prompt=f"""Query: {query}
+Domain: {domain}
 
 Evidence items:
 {batch_text}
 
-Return a JSON object with key "items" containing an array where each element has:
-- index: int (0-based)
-- relevance: float 0-1 (how directly relevant to the query)
-- credibility: float 0-1 (source quality: academic/official=0.9+, news=0.7-0.85, social=0.4-0.65)
-- sentiment: float -1 to 1 (negative to positive regarding the query topic)
-- entities: array of strings (key named entities: people, orgs, events)
+Return JSON with key "items", one entry per item:
+- index: int (0-based within this batch)
+- relevance: float 0-1 (how directly the item informs the SPECIFIC query outcome for {domain}; off-topic items ≤ 0.3)
+- credibility: float 0-1 (academic/official=0.85-0.95, established news=0.70-0.84, blogs/social=0.35-0.65)
+- sentiment: float -1 to 1 (bearish/negative to bullish/positive about the query outcome)
+- entities: array of up to 5 key named entities (people, orgs, places, events)
 
-Return only valid JSON."""
+Return only valid JSON.""",
         )
+        return [(offset + item_data["index"], item_data) for item_data in result.get("items", []) if "index" in item_data]
     except Exception:
+        return []
+
+
+async def enrich_evidence(items: List[EvidenceItem], query: str, domain: str = "general") -> List[EvidenceItem]:
+    if not items:
         return items
 
+    BATCH_SIZE = 8
+    batches = [items[i:i + BATCH_SIZE] for i in range(0, len(items), BATCH_SIZE)]
+
+    batch_results = await asyncio.gather(
+        *[_enrich_batch(batch, i * BATCH_SIZE, query, domain) for i, batch in enumerate(batches)],
+        return_exceptions=True,
+    )
+
     enriched = list(items)
-    for item_data in result.get("items", []):
-        idx = item_data.get("index", -1)
-        if 0 <= idx < len(enriched):
-            enriched[idx].relevance_score = item_data.get("relevance", enriched[idx].relevance_score)
-            if "credibility" in item_data:
-                # Blend LLM credibility with source-default (60% LLM, 40% source default)
-                llm_cred = float(item_data["credibility"])
-                src_cred = enriched[idx].credibility_score or 0.7
-                enriched[idx].credibility_score = round(llm_cred * 0.6 + src_cred * 0.4, 3)
-            enriched[idx].sentiment = item_data.get("sentiment", 0.0)
-            enriched[idx].entities = item_data.get("entities", [])
+    for outcome in batch_results:
+        if isinstance(outcome, Exception):
+            continue
+        for global_idx, item_data in outcome:
+            if 0 <= global_idx < len(enriched):
+                enriched[global_idx].relevance_score = float(item_data.get("relevance", enriched[global_idx].relevance_score))
+                if "credibility" in item_data:
+                    # Blend LLM credibility with source-default (60% LLM, 40% source default)
+                    llm_cred = float(item_data["credibility"])
+                    src_cred = enriched[global_idx].credibility_score or 0.7
+                    enriched[global_idx].credibility_score = round(llm_cred * 0.6 + src_cred * 0.4, 3)
+                enriched[global_idx].sentiment = item_data.get("sentiment", 0.0)
+                enriched[global_idx].entities = (item_data.get("entities") or [])[:5]
 
     return enriched
 
@@ -389,6 +414,7 @@ async def collect_evidence(
     news_api_key: str | None = None,
     gnews_api_key: str | None = None,
     alpha_vantage_key: str | None = None,
+    domain: str = "general",
 ) -> List[EvidenceItem]:
     tasks = [
         collect_arxiv(query, max_results=5),
@@ -429,7 +455,7 @@ async def collect_evidence(
     unique = deduped
 
     try:
-        unique = await enrich_evidence(unique[:max_items], query)
+        unique = await enrich_evidence(unique[:max_items], query, domain)
     except Exception:
         pass
 
