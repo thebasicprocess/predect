@@ -1,6 +1,6 @@
 from typing import List
 from backend.models.prediction import (
-    PredictionReport, Scenarios, ScenarioItem, TimelineItem, ConfidenceBand, PredictedEvent
+    PredictionReport, Scenarios, ScenarioItem, TimelineItem, ConfidenceBand, PredictedEvent, NarrativeCamp
 )
 from backend.models.evidence import EvidenceItem
 from backend.models.simulation import AgentPersona, RoundEvent
@@ -165,6 +165,57 @@ category must be one of: market, regulatory, technical, political, social""",
 
     scenarios_data = result.get("scenarios", {})
 
+    # Third call: narrative camp analysis using glm-5
+    all_claims_for_narrative = sorted_claims[:30]
+    agent_names_roles = [f"{a.name} ({a.role})" for a in agents[:8]]
+    narrative_camps: list[NarrativeCamp] = []
+    tokens3 = 0
+    if all_claims_for_narrative:
+        try:
+            narrative_result, tokens3 = await llm_call_json_with_usage(
+                "public_opinion_analysis",
+                system_prompt="You are an expert at identifying competing narratives and opinion camps. Analyze debate claims and cluster them into distinct narrative factions. Output valid JSON only.",
+                user_prompt=f"""Query: {query}
+Domain: {domain}
+
+Emergent claims from agent simulation (ordered by frequency):
+{chr(10).join(f"- {c}" for c in all_claims_for_narrative)}
+
+Agent participants: {", ".join(agent_names_roles)}
+
+Cluster these claims into 3-4 distinct narrative camps. Each camp represents a coherent viewpoint or faction that emerged from the debate.
+
+Return JSON:
+{{
+  "camps": [
+    {{
+      "narrative": "Short label for this narrative camp (5-8 words)",
+      "sentiment": 0.7,
+      "support_count": 5,
+      "supporting_claims": ["claim text 1", "claim text 2", "claim text 3"],
+      "key_agents": ["Agent Name 1", "Agent Name 2"]
+    }}
+  ]
+}}
+
+Rules:
+- sentiment: float -1 (very bearish/pessimistic) to +1 (very bullish/optimistic) relative to the query outcome
+- support_count: number of claims that belong to this camp
+- supporting_claims: 2-4 representative verbatim claims from the list above
+- key_agents: 1-2 agent names from the participants list who represent this camp's view
+- Order camps by support_count descending (most supported first)""",
+            )
+            for camp_data in narrative_result.get("camps", [])[:4]:
+                narrative_camps.append(NarrativeCamp(
+                    narrative=camp_data.get("narrative", ""),
+                    sentiment=float(camp_data.get("sentiment", 0.0)),
+                    support_count=int(camp_data.get("support_count", 0)),
+                    supporting_claims=camp_data.get("supporting_claims", [])[:4],
+                    key_agents=camp_data.get("key_agents", [])[:2],
+                ))
+        except Exception:
+            pass  # narrative camps are optional enrichment
+
     report = PredictionReport(
         headline=result.get("headline", f"Prediction for: {query}"),
         verdict=result.get("verdict", "Analysis complete."),
@@ -180,5 +231,6 @@ category must be one of: market, regulatory, technical, political, social""",
         agentConsensus=agent_consensus,
         dominantNarratives=result.get("dominantNarratives", []),
         predictedEvents=[PredictedEvent(**e) for e in events_data],
+        narrativeCamps=narrative_camps,
     )
-    return report, tokens1 + tokens2
+    return report, tokens1 + tokens2 + tokens3

@@ -26,6 +26,14 @@ import {
   FileText,
 } from "lucide-react";
 
+interface NarrativeCamp {
+  narrative: string;
+  sentiment: number;
+  support_count: number;
+  supporting_claims: string[];
+  key_agents: string[];
+}
+
 interface PredictionResult {
   headline: string;
   verdict: string;
@@ -46,6 +54,7 @@ interface PredictionResult {
     probability: number;
     category: string;
   }>;
+  narrativeCamps?: NarrativeCamp[];
 }
 
 
@@ -901,30 +910,150 @@ export function ResultsView() {
 
         {/* Narratives tab */}
         {activeTab === "narratives" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Dominant Narratives</CardTitle>
-            </CardHeader>
-            {report.dominantNarratives?.length > 0 ? (
-              <div className="space-y-2">
-                {report.dominantNarratives.map((n, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2 p-2 rounded-lg bg-white/2"
-                  >
-                    <span className="text-xs font-mono text-accent flex-shrink-0">
-                      #{i + 1}
-                    </span>
-                    <span className="text-xs text-text-secondary">{n}</span>
+          <div className="space-y-3">
+            {/* Opinion landscape — narrative camps from glm-5 analysis */}
+            {(report.narrativeCamps?.length ?? 0) > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Opinion Landscape</CardTitle>
+                  <span className="text-[10px] font-mono text-text-muted">{report.narrativeCamps!.length} camps · glm-5 analysis</span>
+                </CardHeader>
+                {/* Sentiment bar showing camp balance */}
+                <div className="mt-2 mb-4">
+                  <div className="flex h-2 rounded-full overflow-hidden gap-px">
+                    {report.narrativeCamps!.map((camp, i) => {
+                      const campColors = ["#635BFF", "#10B981", "#EF4444", "#F59E0B", "#EC4899"];
+                      const color = campColors[i % campColors.length];
+                      const total = report.narrativeCamps!.reduce((s, c) => s + Math.max(c.support_count, 1), 0);
+                      const pct = Math.round((Math.max(camp.support_count, 1) / total) * 100);
+                      return (
+                        <motion.div
+                          key={i}
+                          className="h-full rounded-sm"
+                          style={{ background: color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.1 }}
+                          title={`${camp.narrative}: ${pct}%`}
+                        />
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-text-muted">
-                No dominant narratives detected.
-              </p>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[9px] text-text-muted">Bearish</span>
+                    <span className="text-[9px] text-text-muted">Camp share by claim support</span>
+                    <span className="text-[9px] text-text-muted">Bullish</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {report.narrativeCamps!.map((camp, i) => {
+                    const campColors = ["#635BFF", "#10B981", "#EF4444", "#F59E0B", "#EC4899"];
+                    const color = campColors[i % campColors.length];
+                    const sentimentLabel = camp.sentiment > 0.3 ? "Bullish" : camp.sentiment < -0.3 ? "Bearish" : "Neutral";
+                    const sentimentColor = camp.sentiment > 0.3 ? "#10B981" : camp.sentiment < -0.3 ? "#EF4444" : "#F59E0B";
+                    return (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.08 }}
+                        className="p-3 rounded-xl border border-border bg-white/2"
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5" style={{ background: color }} />
+                            <span className="text-sm font-semibold text-text-primary leading-snug">{camp.narrative}</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: `${sentimentColor}15`, color: sentimentColor }}>
+                              {sentimentLabel}
+                            </span>
+                            <span className="text-[10px] font-mono text-text-muted">{camp.support_count} claims</span>
+                          </div>
+                        </div>
+
+                        {/* Sentiment bar */}
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <span className="text-[9px] text-text-muted w-12 flex-shrink-0">Sentiment</span>
+                          <div className="flex-1 h-1 bg-white/8 rounded-full relative overflow-hidden">
+                            <div className="absolute left-1/2 top-0 w-px h-full bg-white/20" />
+                            <motion.div
+                              className="absolute top-0 h-full rounded-full"
+                              style={{
+                                background: sentimentColor,
+                                left: camp.sentiment > 0 ? "50%" : `${50 + camp.sentiment * 50}%`,
+                                width: `${Math.abs(camp.sentiment) * 50}%`,
+                              }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.abs(camp.sentiment) * 50}%` }}
+                              transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.1 }}
+                            />
+                          </div>
+                          <span className="text-[9px] font-mono text-text-muted w-10 text-right">
+                            {camp.sentiment > 0 ? "+" : ""}{camp.sentiment.toFixed(2)}
+                          </span>
+                        </div>
+
+                        {/* Supporting claims */}
+                        {camp.supporting_claims.length > 0 && (
+                          <div className="space-y-1 mb-2">
+                            {camp.supporting_claims.map((claim, ci) => (
+                              <div key={ci} className="flex items-start gap-1.5">
+                                <div className="w-1 h-1 rounded-full mt-1.5 flex-shrink-0" style={{ background: `${color}80` }} />
+                                <span className="text-[11px] text-text-muted leading-relaxed">{claim}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Key agents */}
+                        {camp.key_agents.length > 0 && (
+                          <div className="flex items-center gap-1.5 pt-2 border-t border-border">
+                            <span className="text-[9px] text-text-muted">Represented by:</span>
+                            {camp.key_agents.map((agentName, ai) => {
+                              const agentIdx = (agents as AgentPersona[]).findIndex(a => a.name === agentName);
+                              const agentColor = AGENT_COLORS[agentIdx >= 0 ? agentIdx % AGENT_COLORS.length : ai % AGENT_COLORS.length];
+                              return (
+                                <span key={ai} className="text-[9px] font-mono px-1.5 py-0.5 rounded" style={{ background: `${agentColor}18`, color: agentColor }}>
+                                  {agentName}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </Card>
             )}
-          </Card>
+
+            {/* Dominant narratives — fallback / supplement */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Dominant Narratives</CardTitle>
+              </CardHeader>
+              {report.dominantNarratives?.length > 0 ? (
+                <div className="space-y-2">
+                  {report.dominantNarratives.map((n, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-2 p-2 rounded-lg bg-white/2"
+                    >
+                      <span className="text-xs font-mono text-accent flex-shrink-0">
+                        #{i + 1}
+                      </span>
+                      <span className="text-xs text-text-secondary">{n}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-text-muted">
+                  No dominant narratives detected.
+                </p>
+              )}
+            </Card>
+          </div>
         )}
 
         {/* Evidence / Sources tab */}

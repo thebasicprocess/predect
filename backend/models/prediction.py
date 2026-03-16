@@ -31,6 +31,14 @@ class ConfidenceBand(BaseModel):
     color: str
 
 
+class NarrativeCamp(BaseModel):
+    narrative: str
+    sentiment: float = 0.0  # -1 bearish to +1 bullish
+    support_count: int = 0
+    supporting_claims: List[str] = []
+    key_agents: List[str] = []
+
+
 class PredictionReport(BaseModel):
     headline: str
     verdict: str
@@ -42,6 +50,7 @@ class PredictionReport(BaseModel):
     agentConsensus: float
     dominantNarratives: List[str]
     predictedEvents: List[PredictedEvent] = []
+    narrativeCamps: List[NarrativeCamp] = []
 
 
 class PredictRequest(BaseModel):
