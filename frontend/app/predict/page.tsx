@@ -10,7 +10,7 @@ import { usePredictionStore } from "@/lib/stores/predictionStore";
 import { useSettingsStore } from "@/lib/stores/settingsStore";
 import { startPrediction, streamPrediction, getPredictionResult } from "@/lib/api";
 import Link from "next/link";
-import { BrainCircuit, Network, Plus } from "lucide-react";
+import { BrainCircuit, Network, Plus, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
@@ -123,6 +123,9 @@ function PredictPageInner() {
             setResult(event.data as Record<string, unknown>);
             setStatus("complete");
             cleanup();
+          } else if (event.phase === "error") {
+            setStatus("error");
+            cleanup();
           }
         },
         async () => {
@@ -131,6 +134,8 @@ function PredictPageInner() {
             if (result?.result) {
               setResult(result.result);
               setStatus("complete");
+            } else if (result?.status === "failed") {
+              setStatus("error");
             }
           } catch {
             // ignore
@@ -285,6 +290,24 @@ function PredictPageInner() {
               </div>
             )}
             <PipelinePanel />
+            {status === "error" && (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-12 h-12 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center mb-4">
+                  <AlertCircle className="w-6 h-6 text-danger" />
+                </div>
+                <h3 className="text-sm font-semibold text-text-primary mb-1">Prediction Failed</h3>
+                <p className="text-xs text-text-muted mb-4 max-w-xs">
+                  The prediction pipeline encountered an error. Try again with a different query or fewer agents.
+                </p>
+                <button
+                  onClick={handleSubmit}
+                  className="flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg bg-accent/15 text-accent border border-accent/30 hover:bg-accent/20 transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Retry
+                </button>
+              </div>
+            )}
             <ResultsView />
             {status === "complete" && predictionId && (
               <div className="mt-4 text-center">
@@ -370,6 +393,22 @@ function PredictPageInner() {
                 </div>
               )}
               <PipelinePanel />
+              {status === "error" && (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="w-10 h-10 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center mb-3">
+                    <AlertCircle className="w-5 h-5 text-danger" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-text-primary mb-1">Prediction Failed</h3>
+                  <p className="text-xs text-text-muted mb-3 max-w-[200px]">Try again with fewer agents or a simpler query.</p>
+                  <button
+                    onClick={handleSubmit}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-accent/15 text-accent border border-accent/30 hover:bg-accent/20 transition-colors"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Retry
+                  </button>
+                </div>
+              )}
               <ResultsView />
               {status === "complete" && predictionId && (
                 <div className="mt-4 text-center">
