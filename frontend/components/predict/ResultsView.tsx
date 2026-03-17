@@ -462,8 +462,9 @@ export function ResultsView() {
         <div className="flex flex-wrap items-center gap-2">
           {domain && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted capitalize">{domain}</span>}
           {timeHorizon && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted">{timeHorizon}</span>}
-          {agents.length > 0 && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted">{agents.length} agents</span>}
-          {roundEvents.length > 0 && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted">{totalRounds} rounds</span>}
+          {agents.length > 0 && <button onClick={() => setActiveTab("agents")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted hover:border-accent/40 hover:text-accent transition-colors">{agents.length} agents</button>}
+          {roundEvents.length > 0 && <button onClick={() => setActiveTab("simulation")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted hover:border-accent/40 hover:text-accent transition-colors">{totalRounds} rounds</button>}
+          {evidence.length > 0 && <button onClick={() => setActiveTab("evidence")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted hover:border-success/40 hover:text-success transition-colors">{evidence.length} sources</button>}
         </div>
       )}
 
@@ -821,6 +822,14 @@ export function ResultsView() {
                   );
                 })}
               </div>
+              {evidence.length > 3 && (
+                <button
+                  onClick={() => setActiveTab("evidence")}
+                  className="mt-3 w-full text-center text-[11px] text-accent hover:text-accent/80 transition-colors py-1 rounded-md hover:bg-accent/5"
+                >
+                  View all {evidence.length} sources →
+                </button>
+              )}
             </Card>
           );
         })()}

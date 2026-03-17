@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ExternalLink, Zap } from "lucide-react";
 import { usePredictionStore, EvidenceItem, AgentPersona, RoundEvent } from "@/lib/stores/predictionStore";
@@ -470,8 +470,9 @@ export function LiveRunView() {
   const { rounds: totalRounds } = useSettingsStore();
 
   // Build a stable name → color map from agents array
-  const agentColorMap = new Map<string, string>(
-    agents.map((a, i) => [a.name, agentColors[i % agentColors.length]])
+  const agentColorMap = useMemo(
+    () => new Map<string, string>(agents.map((a, i) => [a.name, agentColors[i % agentColors.length]])),
+    [agents]
   );
 
   return (
