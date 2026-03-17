@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { usePredictionStore } from "@/lib/stores/predictionStore";
 import { checkHealth } from "@/lib/api";
+import { useTheme } from "@/components/ThemeProvider";
 import {
   BrainCircuit,
   Network,
@@ -13,6 +14,8 @@ import {
   History,
   Settings,
   Zap,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 const links = [
@@ -29,6 +32,7 @@ export function Navigation() {
   const predictionStatus = usePredictionStore((s) => s.status);
   const isRunning = predictionStatus === "running";
   const [backendOnline, setBackendOnline] = useState(true);
+  const { theme, toggle } = useTheme();
 
   useEffect(() => {
     checkHealth().then(setBackendOnline);
@@ -94,6 +98,15 @@ export function Navigation() {
               );
             })}
           </div>
+
+          {/* Theme toggle */}
+          <button
+            onClick={toggle}
+            className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg border border-border text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors duration-200"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </button>
 
           {/* Z.AI status badge */}
           <div className={cn(

@@ -19,6 +19,19 @@
   --success: #10B981;
   --warning: #F59E0B;
   --danger: #EF4444;
+  color-scheme: dark;
+}
+
+.light {
+  --bg-base: #F4F4F8;
+  --bg-card: rgba(0, 0, 0, 0.04);
+  --bg-hover: rgba(0, 0, 0, 0.07);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.15);
+  --text-primary: #0F0F14;
+  --text-secondary: rgba(15, 15, 20, 0.62);
+  --text-muted: rgba(15, 15, 20, 0.38);
+  color-scheme: light;
 }
 
 * {
@@ -50,6 +63,12 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
 }
 
 .glass {
@@ -108,6 +127,17 @@ body {
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+.light .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 25%,
+    rgba(0, 0, 0, 0.08) 50%,
+    rgba(0, 0, 0, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
 }
 
 /* Gradient text with glow */

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Navigation } from "@/components/Navigation";
 import { QueryProvider } from "@/components/QueryProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "PREDECT — Swarm Intelligence Prediction Platform",
@@ -14,11 +15,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-[#0a0a0f] text-[#F8F8FC] antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-bg-base text-text-primary antialiased">
         <QueryProvider>
-          <Navigation />
-          <main className="pt-14 pb-16 sm:pb-0">{children}</main>
+          <ThemeProvider>
+            <Navigation />
+            <main className="pt-14 pb-16 sm:pb-0">{children}</main>
+          </ThemeProvider>
         </QueryProvider>
       </body>
     </html>

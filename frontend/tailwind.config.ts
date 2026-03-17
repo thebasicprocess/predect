@@ -10,23 +10,23 @@ const config: Config = {
     extend: {
       colors: {
         bg: {
-          base: "#0a0a0f",
-          card: "rgba(255,255,255,0.03)",
-          hover: "rgba(255,255,255,0.06)",
+          base: "var(--bg-base)",
+          card: "var(--bg-card)",
+          hover: "var(--bg-hover)",
         },
         accent: {
-          DEFAULT: "#635BFF",
-          hover: "#7C75FF",
-          muted: "rgba(99,91,255,0.15)",
+          DEFAULT: "var(--accent)",
+          hover: "var(--accent-hover)",
+          muted: "var(--accent-muted)",
         },
         border: {
-          DEFAULT: "rgba(255,255,255,0.08)",
-          strong: "rgba(255,255,255,0.15)",
+          DEFAULT: "var(--border)",
+          strong: "var(--border-strong)",
         },
         text: {
-          primary: "#F8F8FC",
-          secondary: "rgba(248,248,252,0.6)",
-          muted: "rgba(248,248,252,0.35)",
+          primary: "var(--text-primary)",
+          secondary: "var(--text-secondary)",
+          muted: "var(--text-muted)",
         },
         success: "#10B981",
         warning: "#F59E0B",
