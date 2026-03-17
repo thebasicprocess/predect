@@ -2,6 +2,7 @@ import json
 import uuid
 import asyncio
 import logging
+import traceback
 from fastapi import APIRouter, HTTPException, Request
 
 logger = logging.getLogger(__name__)
@@ -287,7 +288,6 @@ Prefer Event for specific dated occurrences, Organization for named groups, Pers
             )
 
     except Exception as e:
-        import traceback
         logger.error(f"Pipeline failed for {prediction_id}: {e}\n{traceback.format_exc()}")
         print(f"[PIPELINE ERROR] {prediction_id}: {e}\n{traceback.format_exc()}", flush=True)
         await emit({"phase": "error", "step": -1, "message": str(e)})
@@ -457,7 +457,6 @@ async def get_result_full(prediction_id: str):
     try:
         row = conn.execute("SELECT * FROM predictions WHERE id = ?", (prediction_id,)).fetchone()
         if not row:
-            from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="Prediction not found")
 
         result = json.loads(row["result"]) if row["result"] else None
