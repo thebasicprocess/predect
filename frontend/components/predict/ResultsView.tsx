@@ -1,6 +1,7 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { usePredictionStore, type AgentPersona, type RoundEvent } from "@/lib/stores/predictionStore";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -8,6 +9,9 @@ import { Tabs } from "@/components/ui/Tabs";
 import { getConfidenceColor } from "@/lib/utils";
 import { ConfidenceGauge } from "@/components/predict/ConfidenceGauge";
 import { TimelineChart } from "@/components/predict/TimelineChart";
+import { GraphCanvas, type GraphCanvasHandle } from "@/components/graph/GraphCanvas";
+import { getGraphNodes, getGraphEdges } from "@/lib/api";
+import Link from "next/link";
 import {
   TrendingUp,
   TrendingDown,
@@ -26,6 +30,7 @@ import {
   FileText,
   Search,
   X,
+  Network,
 } from "lucide-react";
 
 interface NarrativeCamp {
@@ -208,6 +213,22 @@ export function ResultsView() {
     [evidence]
   );
 
+  const graphCanvasRef = useRef<GraphCanvasHandle>(null);
+
+  const { data: graphNodes = [] } = useQuery({
+    queryKey: ["graph-nodes-inline", predictionId],
+    queryFn: () => getGraphNodes(500, predictionId ?? undefined),
+    enabled: !!predictionId && activeTab === "graph",
+    staleTime: 60_000,
+  });
+
+  const { data: graphEdges = [] } = useQuery({
+    queryKey: ["graph-edges-inline", predictionId],
+    queryFn: () => getGraphEdges(1000, predictionId ?? undefined),
+    enabled: !!predictionId && activeTab === "graph",
+    staleTime: 60_000,
+  });
+
   if (status !== "complete" || !result) return null;
 
   const report = result as unknown as PredictionResult;
@@ -215,13 +236,14 @@ export function ResultsView() {
 
   const tabs = [
     { id: "report", label: "Report" },
+    { id: "debate", label: roundEvents.length > 0 ? `Debate (${roundEvents.length})` : "Debate" },
+    { id: "sources", label: evidence.length > 0 ? `Sources (${evidence.length})` : "Sources" },
+    { id: "agents", label: agents.length > 0 ? `Agents (${agents.length})` : "Agents" },
+    { id: "graph", label: "Graph" },
     { id: "scenarios", label: "Scenarios" },
     { id: "drivers", label: "Drivers" },
     { id: "timeline", label: "Timeline" },
-    { id: "simulation", label: roundEvents.length > 0 ? `Simulation (${roundEvents.length})` : "Simulation" },
     { id: "narratives", label: "Narratives" },
-    { id: "evidence", label: evidence.length > 0 ? `Sources (${evidence.length})` : "Sources" },
-    { id: "agents", label: agents.length > 0 ? `Agents (${agents.length})` : "Agents" },
   ];
 
   const handleShare = async () => {
@@ -463,8 +485,8 @@ export function ResultsView() {
           {domain && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted capitalize">{domain}</span>}
           {timeHorizon && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted">{timeHorizon}</span>}
           {agents.length > 0 && <button onClick={() => setActiveTab("agents")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted hover:border-accent/40 hover:text-accent transition-colors">{agents.length} agents</button>}
-          {roundEvents.length > 0 && <button onClick={() => setActiveTab("simulation")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted hover:border-accent/40 hover:text-accent transition-colors">{totalRounds} rounds</button>}
-          {evidence.length > 0 && <button onClick={() => setActiveTab("evidence")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted hover:border-success/40 hover:text-success transition-colors">{evidence.length} sources</button>}
+          {roundEvents.length > 0 && <button onClick={() => setActiveTab("debate")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted hover:border-accent/40 hover:text-accent transition-colors">{totalRounds} rounds</button>}
+          {evidence.length > 0 && <button onClick={() => setActiveTab("sources")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted hover:border-success/40 hover:text-success transition-colors">{evidence.length} sources</button>}
         </div>
       )}
 
@@ -824,7 +846,7 @@ export function ResultsView() {
               </div>
               {evidence.length > 3 && (
                 <button
-                  onClick={() => setActiveTab("evidence")}
+                  onClick={() => setActiveTab("sources")}
                   className="mt-3 w-full text-center text-[11px] text-accent hover:text-accent/80 transition-colors py-1 rounded-md hover:bg-accent/5"
                 >
                   View all {evidence.length} sources →
@@ -990,8 +1012,8 @@ export function ResultsView() {
           </>
         )}
 
-        {/* Simulation tab */}
-        {activeTab === "simulation" && (
+        {/* Debate tab */}
+        {activeTab === "debate" && (
           <div className="space-y-3">
             {roundEvents.length > 0 ? (
               <>
@@ -1379,7 +1401,7 @@ export function ResultsView() {
         )}
 
         {/* Evidence / Sources tab */}
-        {activeTab === "evidence" && (
+        {activeTab === "sources" && (
           <div className="space-y-3">
             {/* Source distribution breakdown */}
             {sourceBreakdown.length > 0 && (
@@ -1588,6 +1610,45 @@ export function ResultsView() {
                 </div>
               )}
             </Card>
+          </div>
+        )}
+
+        {/* Graph tab */}
+        {activeTab === "graph" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-text-primary">Knowledge Graph</h3>
+              {predictionId && (
+                <Link
+                  href={`/graph?prediction_id=${predictionId}`}
+                  className="flex items-center gap-1.5 text-xs text-accent hover:text-accent/80 transition-colors"
+                  target="_blank"
+                >
+                  <Network className="w-3 h-3" />
+                  Open full graph
+                </Link>
+              )}
+            </div>
+            {graphNodes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-text-muted">
+                <Network className="w-8 h-8 opacity-20 mb-3" />
+                <p className="text-xs">No graph data for this prediction yet.</p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border overflow-hidden" style={{ height: 520 }}>
+                <GraphCanvas
+                  ref={graphCanvasRef}
+                  nodes={graphNodes}
+                  edges={graphEdges}
+                  onNodeSelect={() => {}}
+                />
+              </div>
+            )}
+            {graphNodes.length > 0 && (
+              <p className="text-[11px] text-text-muted text-center">
+                {graphNodes.length} nodes · {graphEdges.length} edges — scroll to zoom, drag to pan
+              </p>
+            )}
           </div>
         )}
 

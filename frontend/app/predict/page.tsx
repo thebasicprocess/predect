@@ -240,7 +240,7 @@ function PredictPageInner() {
   const loadRecentPredictions = useCallback(() => {
     getPredictionHistory()
       .then((data) => {
-        const completed = (data as HistoryItem[]).filter((p) => p.status === "complete").slice(0, 6);
+        const completed = (data as HistoryItem[]).filter((p) => p.status === "complete").slice(0, 10);
         setRecentPredictions(completed);
       })
       .catch(() => {});
@@ -408,9 +408,14 @@ function PredictPageInner() {
                   </div>
                 ) : (
                   <div className="pt-2">
-                    <div className="flex items-center gap-2 mb-4">
-                      <History className="w-4 h-4 text-text-muted" />
-                      <span className="text-sm font-medium text-text-secondary">Recent Predictions</span>
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <div className="flex items-center gap-2">
+                        <History className="w-4 h-4 text-text-muted" />
+                        <span className="text-sm font-medium text-text-secondary">Recent Predictions</span>
+                      </div>
+                      <Link href="/history" className="text-xs text-accent hover:text-accent/80 transition-colors">
+                        View all →
+                      </Link>
                     </div>
                     <div className="grid gap-2">
                       {recentPredictions.map((p) => {
@@ -453,14 +458,11 @@ function PredictPageInner() {
                         );
                       })}
                     </div>
-                    <div className="flex-1 flex flex-col items-center justify-center text-center mt-12">
-                      <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4">
-                        <BrainCircuit className="w-7 h-7 text-accent" />
-                      </div>
-                      <h2 className="text-lg font-bold mb-1">Start a new prediction</h2>
-                      <p className="text-text-secondary text-sm max-w-xs">
-                        Enter your question on the left and click Run Prediction.
-                      </p>
+                    <div className="text-center mt-8">
+                      <Link href="/history" className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-accent transition-colors border border-border hover:border-accent/30 px-3 py-1.5 rounded-lg">
+                        <History className="w-3.5 h-3.5" />
+                        Full prediction history
+                      </Link>
                     </div>
                   </div>
                 )}
@@ -577,9 +579,14 @@ function PredictPageInner() {
               {status === "idle" && (
                 recentPredictions.length > 0 ? (
                   <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <History className="w-3.5 h-3.5 text-text-muted" />
-                      <span className="text-xs font-medium text-text-secondary">Recent Predictions</span>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <History className="w-3.5 h-3.5 text-text-muted" />
+                        <span className="text-xs font-medium text-text-secondary">Recent Predictions</span>
+                      </div>
+                      <Link href="/history" className="text-xs text-accent hover:text-accent/80 transition-colors">
+                        View all →
+                      </Link>
                     </div>
                     <div className="grid gap-2">
                       {recentPredictions.map((p) => {
