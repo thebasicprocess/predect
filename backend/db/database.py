@@ -18,4 +18,12 @@ def init_db():
     conn = get_connection()
     with conn:
         conn.executescript(SCHEMA_PATH.read_text())
+    # Migrate existing non-unique index to unique — safe to fail if already unique
+    # or if duplicate data exists (we can't auto-deduplicate without data loss)
+    try:
+        with conn:
+            conn.execute("DROP INDEX IF EXISTS idx_nodes_name_type")
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_name_type ON nodes(name, type)")
+    except Exception:
+        pass  # Duplicate data prevents migration — existing nodes still work via SELECT-first pattern
     conn.close()
