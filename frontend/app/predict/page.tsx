@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ConfigPanel } from "@/components/predict/ConfigPanel";
 import { PipelinePanel } from "@/components/predict/PipelinePanel";
+import { LiveRunView } from "@/components/predict/LiveRunView";
 import { ActivityPanel } from "@/components/predict/ActivityPanel";
 import { ResultsView } from "@/components/predict/ResultsView";
 import { usePredictionStore } from "@/lib/stores/predictionStore";
@@ -455,7 +456,11 @@ function PredictPageInner() {
                 )}
               </div>
             )}
-            <PipelinePanel />
+            {status === "running" ? (
+              <LiveRunView />
+            ) : (
+              <PipelinePanel />
+            )}
             {status === "error" && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-12 h-12 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center mb-4">
@@ -606,7 +611,11 @@ function PredictPageInner() {
                   </div>
                 )
               )}
-              <PipelinePanel />
+              {status === "running" ? (
+                <LiveRunView />
+              ) : (
+                <PipelinePanel />
+              )}
               {status === "error" && (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <div className="w-10 h-10 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center mb-3">
