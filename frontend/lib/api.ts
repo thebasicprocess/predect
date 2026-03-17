@@ -87,7 +87,8 @@ export async function deletePrediction(id: string) {
 export async function collectEvidence(
   query: string,
   predictionId?: string,
-  apiKeys?: { newsApiKey?: string; gNewsApiKey?: string; alphaVantageKey?: string }
+  apiKeys?: { newsApiKey?: string; gNewsApiKey?: string; alphaVantageKey?: string },
+  domain?: string
 ) {
   const res = await fetch(`${API_URL}/api/evidence/collect`, {
     method: "POST",
@@ -99,6 +100,7 @@ export async function collectEvidence(
       news_api_key: apiKeys?.newsApiKey || null,
       gnews_api_key: apiKeys?.gNewsApiKey || null,
       alpha_vantage_key: apiKeys?.alphaVantageKey || null,
+      domain: domain || "general",
     }),
   });
   if (!res.ok) throw new Error("Evidence collection failed");

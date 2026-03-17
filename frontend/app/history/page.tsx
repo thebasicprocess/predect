@@ -515,15 +515,19 @@ export default function HistoryPage() {
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
   }, [predictions]);
 
-  const grouped = filteredPredictions.reduce(
-    (acc: Record<string, HistoryItem[]>, p: HistoryItem) => {
-      const rawDate =
-        p.created_at?.split("T")[0] ?? p.created_at?.split(" ")[0] ?? "Unknown";
-      if (!acc[rawDate]) acc[rawDate] = [];
-      acc[rawDate].push(p);
-      return acc;
-    },
-    {}
+  const grouped = useMemo(
+    () =>
+      filteredPredictions.reduce(
+        (acc: Record<string, HistoryItem[]>, p: HistoryItem) => {
+          const rawDate =
+            p.created_at?.split("T")[0] ?? p.created_at?.split(" ")[0] ?? "Unknown";
+          if (!acc[rawDate]) acc[rawDate] = [];
+          acc[rawDate].push(p);
+          return acc;
+        },
+        {}
+      ),
+    [filteredPredictions]
   );
 
   const handleCardClick = (p: HistoryItem) => {
