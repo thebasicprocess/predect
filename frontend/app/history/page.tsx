@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getPredictionHistory, deletePrediction } from "@/lib/api";
 import { getConfidenceColor, formatConfidence } from "@/lib/utils";
-import { History, Clock, BrainCircuit, BarChart2, CheckCircle2, Target, Trash2, Search, X, RefreshCw } from "lucide-react";
+import { History, Clock, BrainCircuit, BarChart2, CheckCircle2, Target, Trash2, Search, X, RefreshCw, Network } from "lucide-react";
 import Link from "next/link";
 
 interface HistoryItem {
@@ -763,6 +763,16 @@ export default function HistoryPage() {
                               <span className="text-xs text-text-muted font-mono w-10 text-center">—</span>
                             )}
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {p.status === "complete" && (
+                                <Link
+                                  href={`/graph?prediction_id=${p.id}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="p-1.5 rounded-md hover:bg-accent/15 hover:text-accent text-text-muted"
+                                  title="View knowledge graph"
+                                >
+                                  <Network className="w-3.5 h-3.5" />
+                                </Link>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
