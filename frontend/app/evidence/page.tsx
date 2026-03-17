@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/Card";
@@ -312,6 +312,7 @@ type SortKey = "relevance" | "credibility" | "sentiment";
 export default function EvidencePage() {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [domain, setDomain] = useState("general");
   const [items, setItems] = useState<EvidenceItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState<SortKey>("relevance");
@@ -322,17 +323,26 @@ export default function EvidencePage() {
     if (!query.trim()) return;
     setLoading(true);
     try {
-      const result = await collectEvidence(query, undefined, {
-        newsApiKey,
-        gNewsApiKey,
-        alphaVantageKey,
-      });
+      const result = await collectEvidence(
+        query,
+        undefined,
+        { newsApiKey, gNewsApiKey, alphaVantageKey },
+        domain,
+      );
       setItems(result.items || []);
     } catch {
       // ignore errors
     }
     setLoading(false);
   };
+
+  const sortedItems = useMemo(() => {
+    const copy = [...items];
+    if (sortBy === "relevance") copy.sort((a, b) => b.relevance_score - a.relevance_score);
+    else if (sortBy === "credibility") copy.sort((a, b) => b.credibility_score - a.credibility_score);
+    else copy.sort((a, b) => (b.sentiment ?? 0) - (a.sentiment ?? 0));
+    return copy;
+  }, [items, sortBy]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
@@ -366,6 +376,21 @@ export default function EvidencePage() {
             >
               Collect Evidence
             </Button>
+          </div>
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {["general", "finance", "technology", "politics", "science", "sports", "crypto", "climate"].map((d) => (
+              <button
+                key={d}
+                onClick={() => setDomain(d)}
+                className={`text-[10px] px-2 py-0.5 rounded-full font-mono capitalize transition-colors border ${
+                  domain === d
+                    ? "bg-accent/15 border-accent/30 text-accent"
+                    : "border-border text-text-muted hover:border-border-strong hover:text-text-secondary"
+                }`}
+              >
+                {d}
+              </button>
+            ))}
           </div>
           {(newsApiKey || gNewsApiKey) && (
             <p className="text-xs text-text-muted mt-2">
@@ -452,14 +477,7 @@ export default function EvidencePage() {
             </div>
 
             <div className="space-y-3">
-              {[...items]
-                .sort((a, b) => {
-                  if (sortBy === "relevance") return b.relevance_score - a.relevance_score;
-                  if (sortBy === "credibility") return b.credibility_score - a.credibility_score;
-                  // sentiment: positive first (null treated as 0)
-                  return (b.sentiment ?? 0) - (a.sentiment ?? 0);
-                })
-                .map((item, i) => (
+              {sortedItems.map((item, i) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 8 }}
