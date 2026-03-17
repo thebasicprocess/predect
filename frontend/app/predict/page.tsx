@@ -12,7 +12,7 @@ import { useSettingsStore } from "@/lib/stores/settingsStore";
 import { startPrediction, streamPrediction, getPredictionResult, getPredictionResultFull, getPredictionHistory } from "@/lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BrainCircuit, Network, Plus, AlertCircle, RefreshCw, History, ChevronRight, Link2 } from "lucide-react";
+import { BrainCircuit, Network, Plus, AlertCircle, RefreshCw, History, ChevronRight, Link2, Share2, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +51,7 @@ function PredictPageInner() {
   const [collectEvidence, setCollectEvidence] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("configure");
   const [recentPredictions, setRecentPredictions] = useState<HistoryItem[]>([]);
+  const [copied, setCopied] = useState(false);
 
   const {
     setResult,
@@ -254,6 +255,15 @@ function PredictPageInner() {
       loadRecentPredictions();
     }
   }, [status, loadRecentPredictions]);
+
+  const handleCopyLink = useCallback(() => {
+    if (!predictionId) return;
+    const url = `${window.location.origin}/predict?view=${predictionId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [predictionId]);
 
   const handleAddSession = useCallback(() => {
     addSession(query);
@@ -487,13 +497,17 @@ function PredictPageInner() {
             )}
             <ResultsView />
             {status === "complete" && predictionId && (
-              <div className="mt-4 text-center">
+              <div className="mt-4 flex items-center justify-center gap-2">
                 <Link href={`/graph?prediction_id=${predictionId}`}>
                   <Button variant="outline" size="sm">
                     <Network className="w-3.5 h-3.5" />
                     View Knowledge Graph
                   </Button>
                 </Link>
+                <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                  {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Share2 className="w-3.5 h-3.5" />}
+                  {copied ? "Copied!" : "Share"}
+                </Button>
               </div>
             )}
           </div>
@@ -640,13 +654,17 @@ function PredictPageInner() {
               )}
               <ResultsView />
               {status === "complete" && predictionId && (
-                <div className="mt-4 text-center">
+                <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
                   <Link href={`/graph?prediction_id=${predictionId}`}>
                     <Button variant="outline" size="sm">
                       <Network className="w-3.5 h-3.5" />
                       View Knowledge Graph
                     </Button>
                   </Link>
+                  <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                    {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Share2 className="w-3.5 h-3.5" />}
+                    {copied ? "Copied!" : "Share"}
+                  </Button>
                 </div>
               )}
             </div>

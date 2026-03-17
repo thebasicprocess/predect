@@ -221,55 +221,57 @@ function PredictionHeatmap({ predictions }: { predictions: HistoryItem[] }) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Build count map keyed by YYYY-MM-DD
-  const countMap = new Map<string, number>();
-  for (const p of predictions) {
-    const key = p.created_at?.split("T")[0] ?? p.created_at?.split(" ")[0];
-    if (key) countMap.set(key, (countMap.get(key) ?? 0) + 1);
-  }
-
-  // Build the 84-day grid ending today
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // Align end of grid to the end of the current week (Saturday)
-  // so columns are always Mon-Sun
-  const endDate = new Date(today);
-  // dayOfWeek: 0=Sun … 6=Sat; we want to end on the last day of this week
-  const dayOfWeek = today.getDay(); // 0-6
-  // Days until Saturday (6)
-  const daysUntilSat = (6 - dayOfWeek + 7) % 7;
-  endDate.setDate(endDate.getDate() + daysUntilSat);
-
-  const startDate = new Date(endDate);
-  startDate.setDate(startDate.getDate() - (DAYS - 1));
-
-  // cells[col][row] — col=0 is oldest week, row=0 is Monday (adjusted)
-  const cells: { date: string; count: number }[][] = [];
-  for (let col = 0; col < WEEKS; col++) {
-    cells[col] = [];
-    for (let row = 0; row < 7; row++) {
-      const d = new Date(startDate);
-      d.setDate(startDate.getDate() + col * 7 + row);
-      const key = toDateKey(d);
-      cells[col][row] = { date: key, count: countMap.get(key) ?? 0 };
+  const { cells, monthLabels, today } = useMemo(() => {
+    // Build count map keyed by YYYY-MM-DD
+    const countMap = new Map<string, number>();
+    for (const p of predictions) {
+      const key = p.created_at?.split("T")[0] ?? p.created_at?.split(" ")[0];
+      if (key) countMap.set(key, (countMap.get(key) ?? 0) + 1);
     }
-  }
 
-  // Month labels: find columns where the month changes (or is the first col)
-  const monthLabels: { col: number; label: string }[] = [];
-  let lastMonth = -1;
-  for (let col = 0; col < WEEKS; col++) {
-    const d = fromDateKey(cells[col][0].date);
-    const m = d.getMonth();
-    if (m !== lastMonth) {
-      monthLabels.push({
-        col,
-        label: d.toLocaleString("en-US", { month: "short" }),
-      });
-      lastMonth = m;
+    // Build the 84-day grid ending today
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
+    // Align end of grid to the end of the current week (Saturday)
+    // so columns are always Mon-Sun
+    const dayOfWeek = todayDate.getDay(); // 0-6
+    const daysUntilSat = (6 - dayOfWeek + 7) % 7;
+    const endDate = new Date(todayDate);
+    endDate.setDate(endDate.getDate() + daysUntilSat);
+
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - (DAYS - 1));
+
+    // cells[col][row] — col=0 is oldest week, row=0 is Monday (adjusted)
+    const builtCells: { date: string; count: number }[][] = [];
+    for (let col = 0; col < WEEKS; col++) {
+      builtCells[col] = [];
+      for (let row = 0; row < 7; row++) {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + col * 7 + row);
+        const key = toDateKey(d);
+        builtCells[col][row] = { date: key, count: countMap.get(key) ?? 0 };
+      }
     }
-  }
+
+    // Month labels: find columns where the month changes (or is the first col)
+    const builtMonthLabels: { col: number; label: string }[] = [];
+    let lastMonth = -1;
+    for (let col = 0; col < WEEKS; col++) {
+      const d = fromDateKey(builtCells[col][0].date);
+      const m = d.getMonth();
+      if (m !== lastMonth) {
+        builtMonthLabels.push({
+          col,
+          label: d.toLocaleString("en-US", { month: "short" }),
+        });
+        lastMonth = m;
+      }
+    }
+
+    return { cells: builtCells, monthLabels: builtMonthLabels, today: todayDate };
+  }, [predictions]);
 
   const CELL = 13; // px cell size
   const GAP = 3;   // px gap
