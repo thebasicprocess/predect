@@ -5,7 +5,9 @@ from backend.db.database import get_connection
 from backend.models.graph import Node, Edge, GraphStats
 
 
-def create_node(type: str, name: str, properties: dict = {}) -> Node:
+def create_node(type: str, name: str, properties: dict | None = None) -> Node:
+    if properties is None:
+        properties = {}
     conn = get_connection()
     node_id = str(uuid.uuid4())
     with conn:
@@ -31,8 +33,26 @@ def get_or_create_node(type: str, name: str) -> Node:
             properties=json.loads(row["properties"] or "{}"),
             created_at=row["created_at"],
         )
+    # Insert and re-fetch to get the canonical ID even under concurrent access
+    node_id = str(uuid.uuid4())
+    with conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO nodes (id, type, name, properties) VALUES (?, ?, ?, ?)",
+            (node_id, type, name, "{}"),
+        )
+    row = conn.execute(
+        "SELECT * FROM nodes WHERE name = ? AND type = ?", (name, type)
+    ).fetchone()
     conn.close()
-    return create_node(type, name)
+    if row:
+        return Node(
+            id=row["id"],
+            type=row["type"],
+            name=row["name"],
+            properties=json.loads(row["properties"] or "{}"),
+            created_at=row["created_at"],
+        )
+    return Node(id=node_id, type=type, name=name)
 
 
 def create_edge(source_id: str, target_id: str, relationship: str, weight: float = 1.0) -> Edge:
