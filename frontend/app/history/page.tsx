@@ -19,6 +19,7 @@ interface HistoryItem {
   status: "complete" | "failed" | "running";
   confidence: number | null;
   headline: string | null;
+  verdict: string | null;
   created_at: string;
 }
 
@@ -505,6 +506,7 @@ export default function HistoryPage() {
       (p) =>
         p.query.toLowerCase().includes(q) ||
         (p.headline?.toLowerCase().includes(q)) ||
+        (p.verdict?.toLowerCase().includes(q)) ||
         (p.domain?.toLowerCase().includes(q))
     );
   }, [predictions, searchQuery, domainFilter]);
@@ -744,8 +746,15 @@ export default function HistoryPage() {
 
                             {/* Headline */}
                             {p.headline && (
-                              <p className="text-xs text-text-secondary mt-1 line-clamp-1">
+                              <p className="text-xs font-medium text-text-secondary mt-1 line-clamp-1">
                                 {p.headline}
+                              </p>
+                            )}
+
+                            {/* Verdict excerpt */}
+                            {p.verdict && p.status === "complete" && (
+                              <p className="text-[11px] text-text-muted mt-1 line-clamp-2 leading-relaxed">
+                                {p.verdict}
                               </p>
                             )}
 

@@ -32,6 +32,7 @@ interface HistoryItem {
   status: "complete" | "failed" | "running";
   confidence: number | null;
   headline: string | null;
+  verdict: string | null;
   created_at: string;
 }
 

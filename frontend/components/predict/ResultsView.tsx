@@ -1738,7 +1738,7 @@ export function ResultsView() {
                             ).length;
                             return participations > 0 ? (
                               <div className="mt-3 pt-2 border-t border-border flex items-center justify-between">
-                                <span className="text-[10px] text-text-muted">Simulation rounds</span>
+                                <span className="text-[10px] text-text-muted">Debate rounds</span>
                                 <span className="text-[10px] font-mono" style={{ color }}>{participations}</span>
                               </div>
                             ) : null;

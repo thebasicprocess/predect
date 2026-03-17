@@ -32,9 +32,9 @@ const features = [
   },
   {
     icon: BrainCircuit,
-    title: "Swarm Simulation",
+    title: "Agent Debate",
     description:
-      "8+ AI agents with distinct personas debate your prediction through multiple interaction rounds.",
+      "8+ AI agents with distinct personas debate your prediction through multiple interaction rounds, exposing conflicting views.",
     badge: "GLM-4.5-Air",
     color: "#635BFF",
     glow: "rgba(99, 91, 255, 0.15)",
@@ -79,8 +79,8 @@ const steps = [
   },
   {
     n: "03",
-    title: "Swarm simulation",
-    desc: "Diverse AI agents debate the topic through structured rounds.",
+    title: "Agent debate",
+    desc: "Diverse AI agents with unique personas debate the topic through structured rounds.",
   },
   {
     n: "04",

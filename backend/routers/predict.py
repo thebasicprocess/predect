@@ -372,6 +372,7 @@ async def get_history():
             "status": row["status"],
             "confidence": row["confidence"],
             "headline": result.get("headline") if result else None,
+            "verdict": result.get("verdict") if result else None,
             "created_at": row["created_at"],
         })
     return results

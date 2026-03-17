@@ -11,7 +11,7 @@ const phases = [
   { id: "evidence", label: "Evidence Collection" },
   { id: "graph", label: "Graph Construction" },
   { id: "agents", label: "Agent Generation" },
-  { id: "simulation", label: "Swarm Simulation" },
+  { id: "simulation", label: "Agent Debate" },
   { id: "analysis", label: "Synthesis" },
   { id: "report", label: "Report Generation" },
 ];

@@ -12,7 +12,7 @@ const phases = [
   { id: "evidence", label: "Evidence" },
   { id: "graph", label: "Graph" },
   { id: "agents", label: "Agents" },
-  { id: "simulation", label: "Simulation" },
+  { id: "simulation", label: "Debate" },
   { id: "analysis", label: "Synthesis" },
   { id: "report", label: "Report" },
 ];
@@ -334,7 +334,7 @@ function LiveDebateSection({
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-text-primary">Simulation Feed</h3>
+          <h3 className="text-sm font-semibold text-text-primary">Agent Debate</h3>
           <span className="text-xs font-mono text-text-muted">
             · Round {maxRound}/{totalRounds}
           </span>
