@@ -85,6 +85,18 @@ async def generate_report(
         if r.interaction_summary
     ])
 
+    # Key disputed points: deduplicated contested claims from pair interactions
+    # These are more focused than the debate arc — one sentence per core contention
+    seen_disputes: set[str] = set()
+    key_disputes: list[str] = []
+    for r in rounds_by_claim_richness:
+        if r.key_disagreement and r.key_disagreement not in seen_disputes:
+            seen_disputes.add(r.key_disagreement)
+            key_disputes.append(r.key_disagreement)
+            if len(key_disputes) >= 6:
+                break
+    disputes_summary = "\n".join([f"- {d}" for d in key_disputes])
+
     # Consensus = 1 - uniqueness. If all claims repeat (agents agree), consensus is high.
     # If every claim is unique (divergent views), consensus is low.
     uniqueness = len(set(all_claims)) / max(len(all_claims), 1)
@@ -170,6 +182,9 @@ Agent Final Beliefs (evolved through simulation rounds):
 
 Debate Arc (key interactions showing how arguments evolved):
 {debate_arc}
+
+Core Disputed Points (specific contested claims agents could not resolve):
+{disputes_summary}
 
 Generate a comprehensive prediction report as JSON:
 {{

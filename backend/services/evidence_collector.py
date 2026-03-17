@@ -98,13 +98,27 @@ async def collect_hn(query: str, max_results: int = 5) -> List[EvidenceItem]:
         return []
 
 
-async def collect_reddit(query: str, max_results: int = 5) -> List[EvidenceItem]:
+_DOMAIN_SUBREDDITS: dict[str, str] = {
+    "finance": "investing+stocks+economics+financialindependence",
+    "technology": "technology+programming+MachineLearning+artificial",
+    "politics": "politics+worldnews+geopolitics",
+    "science": "science+askscience+EverythingScience",
+    "sports": "sports+nba+nfl+soccer",
+    "crypto": "CryptoCurrency+Bitcoin+ethereum+defi",
+    "climate": "environment+climate+ClimateChange",
+}
+
+
+async def collect_reddit(query: str, max_results: int = 5, domain: str = "general") -> List[EvidenceItem]:
     try:
         headers = {"User-Agent": "PREDECT/1.0"}
+        subreddit = _DOMAIN_SUBREDDITS.get(domain, "")
+        if subreddit:
+            url = f"https://www.reddit.com/r/{subreddit}/search.json?q={quote(query)}&limit={max_results}&sort=relevance&restrict_sr=1"
+        else:
+            url = f"https://www.reddit.com/search.json?q={quote(query)}&limit={max_results}&sort=relevance"
         async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
-            resp = await client.get(
-                f"https://www.reddit.com/search.json?q={quote(query)}&limit={max_results}&sort=relevance"
-            )
+            resp = await client.get(url)
         data = resp.json()
         items = []
         for post in data.get("data", {}).get("children", []):
@@ -424,7 +438,7 @@ async def collect_evidence(
     tasks = [
         collect_arxiv(query, max_results=5),
         collect_hn(query, max_results=5),
-        collect_reddit(query, max_results=5),
+        collect_reddit(query, max_results=5, domain=domain),
         collect_google_news(query, max_results=8),
         collect_wikipedia(query),
     ]
@@ -461,6 +475,11 @@ async def collect_evidence(
 
     try:
         unique = await enrich_evidence(unique[:max_items], query, domain)
+        # Drop items the LLM marked as low-relevance after enrichment — they add noise
+        filtered = [item for item in unique if item.relevance_score >= 0.25]
+        # Keep original list if filter is too aggressive (removed more than half)
+        if len(filtered) >= len(unique) // 2:
+            unique = filtered
     except Exception:
         pass
 

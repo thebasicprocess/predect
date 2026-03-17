@@ -100,23 +100,13 @@ export function ResultsView() {
 
   // Consensus progression: per round, fraction of claims that recur in other rounds
   const consensusProgression = useMemo(() => {
-    return roundEvents
-      .filter((_, i, arr) => {
-        // Get unique round numbers
-        const seen = new Set<number>();
-        return !seen.has(arr[i].round) && seen.add(arr[i].round);
-      })
-      .reduce((acc: Array<{round: number; score: number}>, _, __, arr) => {
-        const rounds = Array.from(new Set(arr.map(r => r.round))).sort((a, b) => a - b);
-        for (const rNum of rounds) {
-          if (acc.find(a => a.round === rNum)) continue;
-          const roundClaims = roundEvents.filter(r => r.round === rNum).flatMap(r => r.emergent_claims);
-          if (roundClaims.length === 0) { acc.push({ round: rNum, score: 0 }); continue; }
-          const recurring = roundClaims.filter(c => (claimFreqMap.get(c) ?? 0) > 1).length;
-          acc.push({ round: rNum, score: recurring / roundClaims.length });
-        }
-        return acc;
-      }, []);
+    const rounds = Array.from(new Set(roundEvents.map(r => r.round))).sort((a, b) => a - b);
+    return rounds.map(rNum => {
+      const roundClaims = roundEvents.filter(r => r.round === rNum).flatMap(r => r.emergent_claims);
+      if (roundClaims.length === 0) return { round: rNum, score: 0 };
+      const recurring = roundClaims.filter(c => (claimFreqMap.get(c) ?? 0) > 1).length;
+      return { round: rNum, score: recurring / roundClaims.length };
+    });
   }, [roundEvents, claimFreqMap]);
 
   // Confidence breakdown: compute evidence quality and conviction trend client-side
@@ -1063,10 +1053,10 @@ export function ResultsView() {
                           {round.interaction_summary && (
                             <p className="text-xs text-text-secondary mb-2 leading-relaxed">{round.interaction_summary}</p>
                           )}
-                          {(round as RoundEvent & { key_disagreement?: string }).key_disagreement && (
+                          {round.key_disagreement && (
                             <div className="flex items-start gap-1.5 mb-3 px-2 py-1.5 rounded-lg bg-warning/6 border border-warning/15">
                               <span className="text-[9px] font-mono text-warning/70 flex-shrink-0 mt-0.5 uppercase tracking-wide">Dispute</span>
-                              <p className="text-[11px] text-warning/90 leading-snug">{(round as RoundEvent & { key_disagreement?: string }).key_disagreement}</p>
+                              <p className="text-[11px] text-warning/90 leading-snug">{round.key_disagreement}</p>
                             </div>
                           )}
                           {(round.agent1_statement || round.agent2_statement) && (
@@ -1449,8 +1439,8 @@ export function ResultsView() {
                   {sortedEvidence.map((item, i) => {
                     const color = SOURCE_COLORS[item.source] || "#635BFF";
                     const isExpanded = expandedItems.has(i);
-                    const sentimentVal = (item as any).sentiment as number | null | undefined;
-                    const entities = (item as any).entities as string[] | undefined;
+                    const sentimentVal = item.sentiment;
+                    const entities = item.entities;
                     return (
                       <motion.div
                         key={item.url}

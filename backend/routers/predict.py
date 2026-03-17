@@ -298,6 +298,8 @@ Prefer Event for specific dated occurrences, Organization for named groups, Pers
         conn.close()
         if queue:
             await queue.put("[DONE]")
+        # Ensure queue is cleaned up even if no client is connected
+        _sse_queues.pop(prediction_id, None)
 
 
 @router.post("/run")

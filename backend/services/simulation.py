@@ -98,6 +98,7 @@ async def _run_pair(
     prior_claims: list[str] | None = None,
     evidence_snippets: list[str] | None = None,
     domain: str = "general",
+    prior_disputes: list[str] | None = None,
 ) -> tuple:
     """Run a single pair interaction; returns (RoundEvent, result_dict, tokens)."""
     prior_context = ""
@@ -107,6 +108,11 @@ async def _run_pair(
         prior_context = f"\n{claims_label}\n" + "\n".join(f"- {c}" for c in top_claims) + "\n"
         if round_num >= 3:
             prior_context += "\nThis is a late round — dig deeper, challenge assumptions, and move beyond surface-level disagreements.\n"
+
+    # From round 3 onward: inject unresolved disputes so agents try to settle them
+    if prior_disputes and round_num >= 3:
+        prior_context += "\nUnresolved disputes from earlier rounds (attempt to resolve or deepen one of these):\n"
+        prior_context += "\n".join(f"- {d}" for d in prior_disputes[:4]) + "\n"
 
     # Round 1: inject key evidence snippets so agents can cite concrete data
     evidence_context = ""
@@ -177,6 +183,7 @@ async def run_simulation_round(
     prior_claims: list[str] | None = None,
     evidence_snippets: list[str] | None = None,
     domain: str = "general",
+    prior_disputes: list[str] | None = None,
 ) -> tuple:
     shuffled = agents[:]
     random.shuffle(shuffled)
@@ -190,7 +197,7 @@ async def run_simulation_round(
 
     # Run all pairs in this round in parallel, sharing prior round context
     pair_results = await asyncio.gather(
-        *[_run_pair(round_num, a1, a2, topic, prior_claims, evidence_snippets, domain) for a1, a2 in pairs],
+        *[_run_pair(round_num, a1, a2, topic, prior_claims, evidence_snippets, domain, prior_disputes) for a1, a2 in pairs],
         return_exceptions=True,
     )
 
@@ -255,6 +262,8 @@ async def run_full_simulation(
 
     all_rounds = []
     claim_freq: dict[str, int] = {}  # track how often each claim recurs across rounds
+    seen_disputes: set[str] = set()
+    accumulated_disputes: list[str] = []  # deduplicated unresolved disputes across rounds
     for r in range(1, rounds + 1):
         # Pass top-8 claims sorted by frequency so agents address the most contested topics
         top_prior_claims: list[str] | None = None
@@ -265,12 +274,17 @@ async def run_full_simulation(
             prior_claims=top_prior_claims,
             evidence_snippets=ev_snippets if r == 1 else None,
             domain=domain,
+            prior_disputes=accumulated_disputes if r >= 3 else None,
         )
         all_rounds.extend(round_events)
         # Track claim frequency across all rounds (count duplicates)
         for ev in round_events:
             for claim in ev.emergent_claims:
                 claim_freq[claim] = claim_freq.get(claim, 0) + 1
+            # Collect unique disputes for injection into later rounds
+            if ev.key_disagreement and ev.key_disagreement not in seen_disputes:
+                seen_disputes.add(ev.key_disagreement)
+                accumulated_disputes.append(ev.key_disagreement)
 
     # Emit final agent state so frontend has updated beliefs from all simulation rounds
     if on_event:
