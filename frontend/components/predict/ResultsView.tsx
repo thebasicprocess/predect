@@ -822,27 +822,53 @@ export function ResultsView() {
             <Card>
               <CardHeader>
                 <CardTitle>Key Drivers</CardTitle>
+                <span className="text-[10px] font-mono text-text-muted">ranked by impact</span>
               </CardHeader>
-              <ul className="space-y-1.5">
-                {report.keyDrivers.map((d, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
-                    <CheckCircle className="w-3 h-3 text-success flex-shrink-0 mt-0.5" />
-                    <span className="text-xs text-text-secondary">{d}</span>
-                  </li>
-                ))}
+              <ul className="space-y-2 mt-0.5">
+                {report.keyDrivers.map((d, i) => {
+                  const weight = Math.max(0.3, 1 - i * (0.7 / Math.max(report.keyDrivers.length - 1, 1)));
+                  return (
+                    <motion.li
+                      key={i}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.06 }}
+                      className="flex items-start gap-2.5"
+                    >
+                      <div className="flex-shrink-0 flex flex-col items-center gap-0.5 w-5 mt-0.5">
+                        <span className="text-[9px] font-mono font-bold text-success">{i + 1}</span>
+                        <div className="w-0.5 rounded-full bg-success" style={{ height: `${Math.round(weight * 16)}px`, opacity: weight }} />
+                      </div>
+                      <span className="text-xs text-text-secondary leading-relaxed">{d}</span>
+                    </motion.li>
+                  );
+                })}
               </ul>
             </Card>
             <Card>
               <CardHeader>
                 <CardTitle>Risk Factors</CardTitle>
+                <span className="text-[10px] font-mono text-text-muted">ranked by severity</span>
               </CardHeader>
-              <ul className="space-y-1.5">
-                {report.riskFactors.map((r, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
-                    <AlertTriangle className="w-3 h-3 text-warning flex-shrink-0 mt-0.5" />
-                    <span className="text-xs text-text-secondary">{r}</span>
-                  </li>
-                ))}
+              <ul className="space-y-2 mt-0.5">
+                {report.riskFactors.map((r, i) => {
+                  const weight = Math.max(0.3, 1 - i * (0.7 / Math.max(report.riskFactors.length - 1, 1)));
+                  return (
+                    <motion.li
+                      key={i}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.06 }}
+                      className="flex items-start gap-2.5"
+                    >
+                      <div className="flex-shrink-0 flex flex-col items-center gap-0.5 w-5 mt-0.5">
+                        <span className="text-[9px] font-mono font-bold text-warning">{i + 1}</span>
+                        <div className="w-0.5 rounded-full bg-warning" style={{ height: `${Math.round(weight * 16)}px`, opacity: weight }} />
+                      </div>
+                      <span className="text-xs text-text-secondary leading-relaxed">{r}</span>
+                    </motion.li>
+                  );
+                })}
               </ul>
             </Card>
           </div>

@@ -266,34 +266,39 @@ async def collect_wikipedia(query: str) -> List[EvidenceItem]:
         if not search_results:
             return []
 
-        items = []
+        async def _fetch_wiki_article(client: httpx.AsyncClient, article_title: str) -> EvidenceItem | None:
+            summary_url = (
+                f"https://en.wikipedia.org/api/rest_v1/page/summary/"
+                f"{quote(article_title.replace(' ', '_'))}"
+            )
+            try:
+                resp = await client.get(summary_url)
+                if resp.status_code != 200:
+                    return None
+                data = resp.json()
+                title = data.get("title", "")
+                extract = data.get("extract", "")[:600]
+                page_url = data.get("content_urls", {}).get("desktop", {}).get("page", "")
+                if extract and page_url:
+                    return EvidenceItem(
+                        id=hashlib.md5(page_url.encode()).hexdigest(),
+                        title=f"Wikipedia: {title}",
+                        url=page_url,
+                        source="wikipedia",
+                        snippet=extract,
+                        credibility_score=0.85,
+                        relevance_score=0.7,
+                    )
+            except Exception:
+                pass
+            return None
+
         async with httpx.AsyncClient(timeout=10.0) as client:
-            for hit in search_results[:2]:
-                article_title = hit["title"]
-                summary_url = (
-                    f"https://en.wikipedia.org/api/rest_v1/page/summary/"
-                    f"{quote(article_title.replace(' ', '_'))}"
-                )
-                try:
-                    resp = await client.get(summary_url)
-                    if resp.status_code != 200:
-                        continue
-                    data = resp.json()
-                    title = data.get("title", "")
-                    extract = data.get("extract", "")[:600]
-                    page_url = data.get("content_urls", {}).get("desktop", {}).get("page", "")
-                    if extract and page_url:
-                        items.append(EvidenceItem(
-                            id=hashlib.md5(page_url.encode()).hexdigest(),
-                            title=f"Wikipedia: {title}",
-                            url=page_url,
-                            source="wikipedia",
-                            snippet=extract,
-                            credibility_score=0.85,
-                            relevance_score=0.7,
-                        ))
-                except Exception:
-                    continue
+            fetched = await asyncio.gather(
+                *[_fetch_wiki_article(client, hit["title"]) for hit in search_results[:2]],
+                return_exceptions=True,
+            )
+        items = [item for item in fetched if isinstance(item, EvidenceItem)]
         return items
     except Exception as e:
         logger.warning("Wikipedia collection failed: %s", e)

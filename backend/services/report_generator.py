@@ -76,6 +76,15 @@ async def generate_report(
     ])
     beliefs_summary = "\n".join([f"- {b}" for b in set(all_beliefs[:20])])
 
+    # Debate arc: round-by-round summaries showing how the debate evolved
+    # Pick the rounds with the richest emergent claims (most recurring)
+    rounds_by_claim_richness = sorted(rounds, key=lambda r: len(r.emergent_claims), reverse=True)
+    debate_arc = "\n".join([
+        f"- R{r.round} [{r.agent1_name} vs {r.agent2_name}]: {r.interaction_summary}"
+        for r in rounds_by_claim_richness[:8]
+        if r.interaction_summary
+    ])
+
     # Consensus = 1 - uniqueness. If all claims repeat (agents agree), consensus is high.
     # If every claim is unique (divergent views), consensus is low.
     uniqueness = len(set(all_claims)) / max(len(all_claims), 1)
@@ -158,6 +167,9 @@ Simulation Emergent Claims (sorted by recurrence — [Nx] means N agents raised 
 
 Agent Final Beliefs (evolved through simulation rounds):
 {beliefs_summary}
+
+Debate Arc (key interactions showing how arguments evolved):
+{debate_arc}
 
 Generate a comprehensive prediction report as JSON:
 {{
