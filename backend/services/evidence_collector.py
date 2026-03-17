@@ -464,5 +464,33 @@ async def collect_evidence(
     except Exception:
         pass
 
-    unique.sort(key=lambda x: x.relevance_score * x.credibility_score, reverse=True)
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc)
+
+    def _score(item: EvidenceItem) -> float:
+        base = item.relevance_score * (item.credibility_score or 0.5)
+        # Boost recent evidence: ≤30 days = 1.0x, ≤90 = 0.95x, ≤365 = 0.85x, older = 0.70x
+        if item.published_at:
+            try:
+                pub_str = item.published_at.strip()
+                # Handle common formats: ISO8601 with Z, with +00:00, without tz
+                pub = datetime.fromisoformat(pub_str.replace("Z", "+00:00"))
+                if pub.tzinfo is None:
+                    pub = pub.replace(tzinfo=timezone.utc)
+                days_old = max(0, (now - pub).days)
+                if days_old <= 30:
+                    recency = 1.0
+                elif days_old <= 90:
+                    recency = 0.95
+                elif days_old <= 365:
+                    recency = 0.85
+                else:
+                    recency = 0.70
+                base *= recency
+            except Exception:
+                pass
+        return base
+
+    unique.sort(key=_score, reverse=True)
     return unique[:max_items]

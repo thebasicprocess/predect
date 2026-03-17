@@ -47,6 +47,7 @@ function PredictPageInner() {
   const [query, setQueryLocal] = useState(queryParam ? decodeURIComponent(queryParam) : "");
   const [domain, setDomain] = useState(domainParam || defaultDomain || "general");
   const [timeHorizon, setTimeHorizon] = useState(timeHorizonParam || defaultTimeHorizon || "6 months");
+  const [collectEvidence, setCollectEvidence] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("configure");
   const [recentPredictions, setRecentPredictions] = useState<HistoryItem[]>([]);
 
@@ -165,7 +166,7 @@ function PredictPageInner() {
         time_horizon: timeHorizon,
         agent_count: agentCount,
         rounds,
-        collect_evidence: true,
+        collect_evidence: collectEvidence,
         news_api_key: newsApiKey || null,
         gnews_api_key: gNewsApiKey || null,
         alpha_vantage_key: alphaVantageKey || null,
@@ -346,6 +347,8 @@ function PredictPageInner() {
               setDomain={setDomain}
               timeHorizon={timeHorizon}
               setTimeHorizon={setTimeHorizon}
+              collectEvidence={collectEvidence}
+              setCollectEvidence={setCollectEvidence}
               onSubmit={handleSubmit}
               loading={status === "running"}
             />
@@ -533,6 +536,8 @@ function PredictPageInner() {
                 setDomain={handleSetDomain}
                 timeHorizon={timeHorizon}
                 setTimeHorizon={handleSetTimeHorizon}
+                collectEvidence={collectEvidence}
+                setCollectEvidence={setCollectEvidence}
                 onSubmit={handleSubmit}
                 loading={status === "running"}
               />

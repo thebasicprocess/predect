@@ -14,6 +14,8 @@ interface ConfigPanelProps {
   setDomain: (d: string) => void;
   timeHorizon: string;
   setTimeHorizon: (t: string) => void;
+  collectEvidence: boolean;
+  setCollectEvidence: (v: boolean) => void;
   onSubmit: () => void;
   loading: boolean;
 }
@@ -108,6 +110,8 @@ export function ConfigPanel({
   setDomain,
   timeHorizon,
   setTimeHorizon,
+  collectEvidence,
+  setCollectEvidence,
   onSubmit,
   loading,
 }: ConfigPanelProps) {
@@ -293,6 +297,24 @@ export function ConfigPanel({
               <span className="text-[10px] text-text-muted">10 · Deep</span>
             </div>
           </div>
+          {/* Evidence toggle */}
+          <button
+            type="button"
+            onClick={() => setCollectEvidence(!collectEvidence)}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border transition-colors ${
+              collectEvidence
+                ? "border-success/30 bg-success/6 text-success"
+                : "border-border bg-white/3 text-text-muted hover:border-border-strong"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${collectEvidence ? "bg-success" : "bg-white/20"}`} />
+              <span className="text-xs font-medium">Collect evidence</span>
+            </div>
+            <span className="text-[10px] font-mono">
+              {collectEvidence ? "ON · ~5–8 min" : "OFF · ~2–3 min"}
+            </span>
+          </button>
         </div>
       </Card>
 
