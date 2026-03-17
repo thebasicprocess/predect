@@ -136,7 +136,7 @@ export function ConfigPanel({
 
   const isMac = useMemo(() => {
     if (typeof window === "undefined") return true;
-    return /Mac|iPod|iPhone|iPad/.test(window.navigator.platform);
+    return /Mac|iPhone|iPad/.test(window.navigator.userAgent);
   }, []);
 
   const charsUsed = query.length;

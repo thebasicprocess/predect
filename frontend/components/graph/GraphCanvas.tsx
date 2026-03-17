@@ -88,6 +88,7 @@ export const GraphCanvas = forwardRef<
 
   // Pan drag state
   const isDraggingRef = useRef(false);
+  const didPanRef = useRef(false); // true if mouse moved during drag (suppresses click)
   const dragStartRef = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
 
   // Keep latest nodes/edges in a ref so mouse handlers can access them without
@@ -435,6 +436,7 @@ export const GraphCanvas = forwardRef<
 
     if (!onNode) {
       isDraggingRef.current = true;
+      didPanRef.current = false;
       dragStartRef.current = {
         x: mx,
         y: my,
@@ -453,8 +455,11 @@ export const GraphCanvas = forwardRef<
 
     if (isDraggingRef.current) {
       const ds = dragStartRef.current;
-      cameraRef.current.x = ds.camX + (mx - ds.x);
-      cameraRef.current.y = ds.camY + (my - ds.y);
+      const dx = mx - ds.x;
+      const dy = my - ds.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didPanRef.current = true;
+      cameraRef.current.x = ds.camX + dx;
+      cameraRef.current.y = ds.camY + dy;
       return;
     }
 
@@ -526,7 +531,10 @@ export const GraphCanvas = forwardRef<
   // ── Click ─────────────────────────────────────────────────────────────────
   const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     // Suppress click if we just finished a drag (moved more than a few pixels)
-    if (isDraggingRef.current) return;
+    if (didPanRef.current) {
+      didPanRef.current = false;
+      return;
+    }
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
