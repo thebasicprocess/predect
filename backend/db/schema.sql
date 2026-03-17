@@ -56,4 +56,4 @@ CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source_id);
 CREATE INDEX IF NOT EXISTS idx_edges_target ON edges(target_id);
 CREATE INDEX IF NOT EXISTS idx_pnm_prediction ON prediction_node_map(prediction_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_name_type ON nodes(name, type);
-CREATE INDEX IF NOT EXISTS idx_edges_unique ON edges(source_id, target_id, relationship);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_edges_unique ON edges(source_id, target_id, relationship);

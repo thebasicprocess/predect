@@ -5,20 +5,6 @@ from backend.db.database import get_connection
 from backend.models.graph import Node, Edge, GraphStats
 
 
-def create_node(type: str, name: str, properties: dict | None = None) -> Node:
-    if properties is None:
-        properties = {}
-    conn = get_connection()
-    node_id = str(uuid.uuid4())
-    with conn:
-        conn.execute(
-            "INSERT OR IGNORE INTO nodes (id, type, name, properties) VALUES (?, ?, ?, ?)",
-            (node_id, type, name, json.dumps(properties)),
-        )
-    conn.close()
-    return Node(id=node_id, type=type, name=name, properties=properties)
-
-
 def get_or_create_node(type: str, name: str) -> Node:
     conn = get_connection()
     row = conn.execute(
@@ -57,13 +43,18 @@ def get_or_create_node(type: str, name: str) -> Node:
 
 def create_edge(source_id: str, target_id: str, relationship: str, weight: float = 1.0) -> Edge:
     conn = get_connection()
-    # Return existing edge if the same relationship already exists
+    edge_id = str(uuid.uuid4())
+    with conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO edges (id, source_id, target_id, relationship, weight) VALUES (?, ?, ?, ?, ?)",
+            (edge_id, source_id, target_id, relationship, weight),
+        )
     row = conn.execute(
         "SELECT * FROM edges WHERE source_id = ? AND target_id = ? AND relationship = ?",
         (source_id, target_id, relationship),
     ).fetchone()
+    conn.close()
     if row:
-        conn.close()
         return Edge(
             id=row["id"],
             source_id=row["source_id"],
@@ -73,13 +64,6 @@ def create_edge(source_id: str, target_id: str, relationship: str, weight: float
             properties=json.loads(row["properties"] or "{}"),
             created_at=row["created_at"],
         )
-    edge_id = str(uuid.uuid4())
-    with conn:
-        conn.execute(
-            "INSERT INTO edges (id, source_id, target_id, relationship, weight) VALUES (?, ?, ?, ?, ?)",
-            (edge_id, source_id, target_id, relationship, weight),
-        )
-    conn.close()
     return Edge(id=edge_id, source_id=source_id, target_id=target_id, relationship=relationship, weight=weight)
 
 

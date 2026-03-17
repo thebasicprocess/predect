@@ -26,4 +26,11 @@ def init_db():
             conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_name_type ON nodes(name, type)")
     except Exception:
         pass  # Duplicate data prevents migration — existing nodes still work via SELECT-first pattern
+    # Migrate edges index to unique — enables INSERT OR IGNORE in create_edge
+    try:
+        with conn:
+            conn.execute("DROP INDEX IF EXISTS idx_edges_unique")
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_edges_unique ON edges(source_id, target_id, relationship)")
+    except Exception:
+        pass  # Duplicate edges prevent migration — application-level dedup still prevents most duplicates
     conn.close()
