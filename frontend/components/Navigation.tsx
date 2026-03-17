@@ -1,9 +1,11 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { usePredictionStore } from "@/lib/stores/predictionStore";
+import { checkHealth } from "@/lib/api";
 import {
   BrainCircuit,
   Network,
@@ -26,6 +28,13 @@ export function Navigation() {
   const pathname = usePathname();
   const predictionStatus = usePredictionStore((s) => s.status);
   const isRunning = predictionStatus === "running";
+  const [backendOnline, setBackendOnline] = useState(true);
+
+  useEffect(() => {
+    checkHealth().then(setBackendOnline);
+    const interval = setInterval(() => checkHealth().then(setBackendOnline), 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <>
@@ -87,12 +96,17 @@ export function Navigation() {
           </div>
 
           {/* Z.AI status badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-success/20 bg-success/5">
+          <div className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-full border",
+            backendOnline ? "border-success/20 bg-success/5" : "border-danger/20 bg-danger/5"
+          )}>
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-60" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-success status-glow-pulse" />
+              {backendOnline && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-60" />}
+              <span className={cn("relative inline-flex rounded-full h-2 w-2", backendOnline ? "bg-success status-glow-pulse" : "bg-danger")} />
             </span>
-            <span className="text-xs text-success/80 font-medium">Z.AI Connected</span>
+            <span className={cn("text-xs font-medium", backendOnline ? "text-success/80" : "text-danger/80")}>
+              {backendOnline ? "Z.AI Connected" : "Backend Offline"}
+            </span>
           </div>
         </div>
 
