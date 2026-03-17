@@ -52,7 +52,6 @@ function PredictPageInner() {
   const [recentPredictions, setRecentPredictions] = useState<HistoryItem[]>([]);
 
   const {
-    addEvent,
     setResult,
     setPredictionId,
     setStatus,
@@ -209,8 +208,10 @@ function PredictPageInner() {
     timeHorizon,
     agentCount,
     rounds,
-    addEvent,
-    setResult,
+    collectEvidence,
+    newsApiKey,
+    gNewsApiKey,
+    alphaVantageKey,
     setPredictionId,
     setStatus,
     reset,
@@ -344,9 +345,9 @@ function PredictPageInner() {
               query={query}
               setQuery={handleSetQuery}
               domain={domain}
-              setDomain={setDomain}
+              setDomain={handleSetDomain}
               timeHorizon={timeHorizon}
-              setTimeHorizon={setTimeHorizon}
+              setTimeHorizon={handleSetTimeHorizon}
               collectEvidence={collectEvidence}
               setCollectEvidence={setCollectEvidence}
               onSubmit={handleSubmit}

@@ -1,9 +1,12 @@
 import asyncio
+import logging
 import os
 import json
 import re
 from openai import AsyncOpenAI
 from typing import Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 ZAI_BASE_URL = os.getenv("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4/")
 
@@ -109,13 +112,17 @@ async def llm_call_with_usage(
             tokens = response.usage.total_tokens if response.usage else 0
             if content.strip():
                 return content, tokens
+            logger.warning("LLM returned empty content for task=%s attempt=%d", task, attempt)
             if attempt < 2:
                 await asyncio.sleep(1)
         except Exception as e:
             last_err = e
+            wait = (2 ** attempt) + (0.1 * attempt)  # slight jitter
+            logger.warning("LLM call failed for task=%s attempt=%d error=%s, retrying in %.1fs", task, attempt, e, wait)
             if attempt < 2:
-                await asyncio.sleep(2 ** attempt)
+                await asyncio.sleep(wait)
     if last_err:
+        logger.error("LLM call exhausted retries for task=%s: %s", task, last_err)
         raise last_err
     raise ValueError(f"LLM returned empty content after 3 attempts for task={task}")
 
