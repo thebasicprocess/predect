@@ -195,6 +195,19 @@ export function ResultsView() {
   // Unique round count
   const totalRounds = useMemo(() => new Set(roundEvents.map((r) => r.round)).size, [roundEvents]);
 
+  // Top evidence for report tab preview (sorted by relevance × credibility)
+  const topEvidence = useMemo(
+    () =>
+      [...evidence]
+        .sort(
+          (a, b) =>
+            (b.relevance_score ?? 0) * (b.credibility_score ?? 0.5) -
+            (a.relevance_score ?? 0) * (a.credibility_score ?? 0.5)
+        )
+        .slice(0, 3),
+    [evidence]
+  );
+
   if (status !== "complete" || !result) return null;
 
   const report = result as unknown as PredictionResult;
@@ -450,7 +463,7 @@ export function ResultsView() {
           {domain && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted capitalize">{domain}</span>}
           {timeHorizon && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted">{timeHorizon}</span>}
           {agents.length > 0 && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted">{agents.length} agents</span>}
-          {roundEvents.length > 0 && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted">{new Set(roundEvents.map(r => r.round)).size} rounds</span>}
+          {roundEvents.length > 0 && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted">{totalRounds} rounds</span>}
         </div>
       )}
 
@@ -771,10 +784,7 @@ export function ResultsView() {
         )}
 
         {/* Key Evidence card in Report tab */}
-        {activeTab === "report" && evidence.length > 0 && (() => {
-          const topEvidence = [...evidence]
-            .sort((a, b) => (b.relevance_score * (b.credibility_score ?? 0.5)) - (a.relevance_score * (a.credibility_score ?? 0.5)))
-            .slice(0, 3);
+        {activeTab === "report" && topEvidence.length > 0 && (() => {
           return (
             <Card>
               <CardHeader>
