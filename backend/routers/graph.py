@@ -1,6 +1,6 @@
 import json
 from typing import Optional
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from backend.services.graph_service import get_all_nodes, get_all_edges, get_graph_stats, get_nodes_for_prediction, get_edges_for_prediction
 from backend.db.database import get_connection
 
@@ -27,7 +27,6 @@ async def get_node(node_id: str):
     row = conn.execute("SELECT * FROM nodes WHERE id = ?", (node_id,)).fetchone()
     conn.close()
     if not row:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Node not found")
     return {
         "id": row["id"],

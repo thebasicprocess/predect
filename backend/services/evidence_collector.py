@@ -3,6 +3,8 @@ import hashlib
 import ipaddress
 import logging
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+from html import unescape
 from typing import List
 from urllib.parse import quote, urlparse
 import httpx
@@ -245,7 +247,6 @@ async def collect_google_news(query: str, max_results: int = 8) -> List[Evidence
             url_str = link_el.text or ""
             snippet = ""
             if desc_el is not None and desc_el.text:
-                from html import unescape
                 raw = unescape(desc_el.text)
                 soup = BeautifulSoup(raw, "html.parser")
                 snippet = soup.get_text()[:500]
@@ -406,7 +407,6 @@ async def collect_alpha_vantage(query: str, api_key: str, max_results: int = 5) 
             # Convert AV timestamp 20250101T120000 → ISO 8601
             if published and len(published) >= 15:
                 try:
-                    from datetime import datetime
                     published = datetime.strptime(published[:15], "%Y%m%dT%H%M%S").isoformat()
                 except Exception:
                     pass
@@ -482,8 +482,6 @@ async def collect_evidence(
             unique = filtered
     except Exception:
         pass
-
-    from datetime import datetime, timezone
 
     now = datetime.now(timezone.utc)
 

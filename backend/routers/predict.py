@@ -2,7 +2,7 @@ import json
 import uuid
 import asyncio
 import logging
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 
 logger = logging.getLogger(__name__)
 from fastapi.responses import StreamingResponse
@@ -435,7 +435,6 @@ async def get_result(prediction_id: str):
     row = conn.execute("SELECT * FROM predictions WHERE id = ?", (prediction_id,)).fetchone()
     conn.close()
     if not row:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Prediction not found")
 
     result = json.loads(row["result"]) if row["result"] else None
@@ -502,13 +501,12 @@ async def delete_prediction(prediction_id: str):
     try:
         row = conn.execute("SELECT id FROM predictions WHERE id = ?", (prediction_id,)).fetchone()
         if not row:
-            from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="Prediction not found")
-        conn.execute("DELETE FROM simulations WHERE prediction_id = ?", (prediction_id,))
-        conn.execute("DELETE FROM evidence_bundles WHERE prediction_id = ?", (prediction_id,))
-        conn.execute("DELETE FROM prediction_node_map WHERE prediction_id = ?", (prediction_id,))
-        conn.execute("DELETE FROM predictions WHERE id = ?", (prediction_id,))
-        conn.commit()
+        with conn:
+            conn.execute("DELETE FROM simulations WHERE prediction_id = ?", (prediction_id,))
+            conn.execute("DELETE FROM evidence_bundles WHERE prediction_id = ?", (prediction_id,))
+            conn.execute("DELETE FROM prediction_node_map WHERE prediction_id = ?", (prediction_id,))
+            conn.execute("DELETE FROM predictions WHERE id = ?", (prediction_id,))
         return {"deleted": prediction_id}
     finally:
         conn.close()

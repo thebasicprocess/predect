@@ -21,6 +21,7 @@ async def collect(request: CollectRequest):
         news_api_key=request.news_api_key or None,
         gnews_api_key=request.gnews_api_key or None,
         alpha_vantage_key=request.alpha_vantage_key or None,
+        domain=request.domain or "general",
     )
     bundle_id = str(uuid.uuid4())
     conn = get_connection()
@@ -48,7 +49,6 @@ async def get_bundle(bundle_id: str):
     row = conn.execute("SELECT * FROM evidence_bundles WHERE id = ?", (bundle_id,)).fetchone()
     conn.close()
     if not row:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Bundle not found")
     return {
         "id": row["id"],

@@ -31,3 +31,4 @@ class CollectRequest(BaseModel):
     news_api_key: Optional[str] = None
     gnews_api_key: Optional[str] = None
     alpha_vantage_key: Optional[str] = None
+    domain: Optional[str] = "general"

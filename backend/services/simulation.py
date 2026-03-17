@@ -179,7 +179,7 @@ async def run_simulation_round(
     round_num: int,
     agents: List[AgentPersona],
     topic: str,
-    on_event: Callable[[dict], Awaitable[None]] = None,
+    on_event: Callable[[dict], Awaitable[None]] | None = None,
     prior_claims: list[str] | None = None,
     evidence_snippets: list[str] | None = None,
     domain: str = "general",
@@ -236,7 +236,7 @@ async def run_full_simulation(
     evidence_items: List[EvidenceItem],
     agent_count: int = 8,
     rounds: int = 5,
-    on_event: Callable[[dict], Awaitable[None]] = None,
+    on_event: Callable[[dict], Awaitable[None]] | None = None,
     domain: str = "general",
 ) -> tuple:
     agents, persona_tokens = await generate_personas(topic, evidence_items, agent_count, domain)
