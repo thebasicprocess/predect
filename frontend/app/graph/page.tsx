@@ -119,7 +119,7 @@ function GraphPageInner() {
   };
 
   // All edges connected to the selected node
-  const allConnectedEdges: Array<{ edge: GraphEdge; connectedNode: GraphNode }> =
+  const allConnectedEdges = useMemo((): Array<{ edge: GraphEdge; connectedNode: GraphNode }> =>
     selected
       ? edges
           .filter(
@@ -133,7 +133,8 @@ function GraphPageInner() {
             return connectedNode ? { edge: e, connectedNode } : null;
           })
           .filter((item): item is { edge: GraphEdge; connectedNode: GraphNode } => item !== null)
-      : [];
+      : [],
+  [selected, edges, nodes]);
 
   // Degree map: node id → number of edges
   const degreeMap = useMemo(() => {

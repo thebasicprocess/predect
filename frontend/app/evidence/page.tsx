@@ -446,7 +446,7 @@ export default function EvidencePage() {
                   ))}
                 </div>
               <div className="flex gap-2 flex-wrap">
-                {["arxiv", "hn", "reddit", "google_news", "wikipedia", "newsapi", "gnews", "alpha_vantage"].map((src) => {
+                {["arxiv", "hn", "reddit", "google_news", "wikipedia", "web", "newsapi", "gnews", "alpha_vantage"].map((src) => {
                   const count = items.filter((i) => i.source === src).length;
                   if (!count) return null;
                   return (

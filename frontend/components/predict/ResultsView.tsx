@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { usePredictionStore, type AgentPersona, type RoundEvent } from "@/lib/stores/predictionStore";
@@ -9,7 +9,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { getConfidenceColor } from "@/lib/utils";
 import { ConfidenceGauge } from "@/components/predict/ConfidenceGauge";
 import { TimelineChart } from "@/components/predict/TimelineChart";
-import { GraphCanvas, type GraphCanvasHandle } from "@/components/graph/GraphCanvas";
+import { GraphCanvas } from "@/components/graph/GraphCanvas";
 import { getGraphNodes, getGraphEdges } from "@/lib/api";
 import Link from "next/link";
 import {
@@ -17,7 +17,6 @@ import {
   TrendingDown,
   Minus,
   AlertTriangle,
-  CheckCircle,
   Clock,
   Calendar,
   Share2,
@@ -175,7 +174,7 @@ export function ResultsView() {
   // Sorted + filtered evidence list
   const sortedEvidence = useMemo(() => {
     const q = evidenceFilter.trim().toLowerCase();
-    let copy = q
+    const copy = q
       ? evidence.filter(
           (e) =>
             e.title.toLowerCase().includes(q) ||
@@ -213,19 +212,19 @@ export function ResultsView() {
     [evidence]
   );
 
-  const graphCanvasRef = useRef<GraphCanvasHandle>(null);
+  const [selectedGraphNode, setSelectedGraphNode] = useState<{ id: string; name: string; type: string } | null>(null);
 
   const { data: graphNodes = [] } = useQuery({
     queryKey: ["graph-nodes-inline", predictionId],
     queryFn: () => getGraphNodes(500, predictionId ?? undefined),
-    enabled: !!predictionId && activeTab === "graph",
+    enabled: !!predictionId,
     staleTime: 60_000,
   });
 
   const { data: graphEdges = [] } = useQuery({
     queryKey: ["graph-edges-inline", predictionId],
     queryFn: () => getGraphEdges(1000, predictionId ?? undefined),
-    enabled: !!predictionId && activeTab === "graph",
+    enabled: !!predictionId,
     staleTime: 60_000,
   });
 
@@ -1246,7 +1245,8 @@ export function ResultsView() {
               </>
             ) : (
               <div className="text-center py-12 text-text-muted">
-                <p className="text-xs">Simulation data not available for this prediction.</p>
+                <p className="text-xs font-medium">No debate rounds recorded</p>
+                <p className="text-[11px] mt-1 opacity-60">Run a prediction with simulation enabled to see agent debates here.</p>
               </div>
             )}
           </div>
@@ -1515,7 +1515,7 @@ export function ResultsView() {
                                   <button
                                     onClick={() => setExpandedItems(prev => {
                                       const next = new Set(prev);
-                                      isExpanded ? next.delete(i) : next.add(i);
+                                      if (isExpanded) next.delete(i); else next.add(i);
                                       return next;
                                     })}
                                     className="text-[10px] text-accent hover:text-accent/80 mt-0.5 transition-colors"
@@ -1615,9 +1615,16 @@ export function ResultsView() {
 
         {/* Graph tab */}
         {activeTab === "graph" && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-text-primary">Knowledge Graph</h3>
+              <h3 className="text-sm font-semibold text-text-primary">
+                Knowledge Graph
+                {graphNodes.length > 0 && (
+                  <span className="ml-2 text-xs font-normal text-text-muted font-mono">
+                    {graphNodes.length} nodes · {graphEdges.length} edges
+                  </span>
+                )}
+              </h3>
               {predictionId && (
                 <Link
                   href={`/graph?prediction_id=${predictionId}`}
@@ -1625,29 +1632,43 @@ export function ResultsView() {
                   target="_blank"
                 >
                   <Network className="w-3 h-3" />
-                  Open full graph
+                  Full screen
                 </Link>
               )}
             </div>
             {graphNodes.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-text-muted">
+              <div className="flex flex-col items-center justify-center py-16 text-text-muted glass rounded-xl border border-border">
                 <Network className="w-8 h-8 opacity-20 mb-3" />
-                <p className="text-xs">No graph data for this prediction yet.</p>
+                <p className="text-xs font-medium">Graph is being built</p>
+                <p className="text-[11px] mt-1 opacity-60">Entities are extracted after the pipeline completes.</p>
               </div>
             ) : (
-              <div className="rounded-xl border border-border overflow-hidden" style={{ height: 520 }}>
-                <GraphCanvas
-                  ref={graphCanvasRef}
-                  nodes={graphNodes}
-                  edges={graphEdges}
-                  onNodeSelect={() => {}}
-                />
-              </div>
-            )}
-            {graphNodes.length > 0 && (
-              <p className="text-[11px] text-text-muted text-center">
-                {graphNodes.length} nodes · {graphEdges.length} edges — scroll to zoom, drag to pan
-              </p>
+              <>
+                <div className="rounded-xl border border-border overflow-hidden" style={{ height: 500 }}>
+                  <GraphCanvas
+                    nodes={graphNodes}
+                    edges={graphEdges}
+                    onNodeSelect={(node) => setSelectedGraphNode(node ? { id: node.id, name: node.name, type: node.type } : null)}
+                  />
+                </div>
+                {selectedGraphNode ? (
+                  <div className="glass rounded-xl border border-accent/25 px-4 py-3 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold text-text-primary">{selectedGraphNode.name}</p>
+                      <p className="text-[11px] text-text-muted mt-0.5">{selectedGraphNode.type}</p>
+                    </div>
+                    <Link
+                      href={`/graph?prediction_id=${predictionId}`}
+                      className="text-[11px] text-accent hover:text-accent/80 transition-colors flex-shrink-0"
+                      target="_blank"
+                    >
+                      Explore in graph →
+                    </Link>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-text-muted text-center">Click a node to see details · scroll to zoom · drag to pan</p>
+                )}
+              </>
             )}
           </div>
         )}
@@ -1758,7 +1779,8 @@ export function ResultsView() {
               </>
             ) : (
               <div className="text-center py-12 text-text-muted">
-                <p className="text-xs">Agent data not available for this prediction.</p>
+                <p className="text-xs font-medium">No agent personas loaded</p>
+                <p className="text-[11px] mt-1 opacity-60">Agent swarm data will appear here after simulation runs.</p>
               </div>
             )}
           </div>
