@@ -1,4 +1,5 @@
 "use client";
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePredictionStore } from "@/lib/stores/predictionStore";
 import { useSettingsStore } from "@/lib/stores/settingsStore";
@@ -43,8 +44,9 @@ export function ActivityPanel() {
   const modelEvents = events.filter((e) => e.model && e.task);
 
   // Build a stable name → color index map from the agents array
-  const agentColorMap = new Map<string, string>(
-    agents.map((a, i) => [a.name, agentColors[i % agentColors.length]])
+  const agentColorMap = useMemo(
+    () => new Map<string, string>(agents.map((a, i) => [a.name, agentColors[i % agentColors.length]])),
+    [agents]
   );
 
   // Aggregate total tokens across all model events
