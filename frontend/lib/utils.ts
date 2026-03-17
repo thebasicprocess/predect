@@ -10,8 +10,8 @@ export function formatConfidence(score: number): string {
 }
 
 export function getConfidenceColor(score: number): string {
-  if (score >= 0.75) return "#10B981";
-  if (score >= 0.5) return "#F59E0B";
+  if (score >= 0.7) return "#10B981";
+  if (score >= 0.45) return "#F59E0B";
   return "#EF4444";
 }
 
