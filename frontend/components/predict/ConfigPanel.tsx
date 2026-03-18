@@ -304,7 +304,7 @@ export function ConfigPanel({
             className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border transition-colors ${
               collectEvidence
                 ? "border-success/30 bg-success/6 text-success"
-                : "border-border bg-white/3 text-text-muted hover:border-border-strong"
+                : "border-border bg-bg-card text-text-muted hover:border-border-strong"
             }`}
           >
             <div className="flex items-center gap-2">
@@ -331,7 +331,7 @@ export function ConfigPanel({
               <button
                 key={example}
                 onClick={() => handleExampleClick(example)}
-                className="w-full text-left text-[10px] px-2.5 py-1.5 rounded-lg bg-white/3 border border-border hover:bg-white/6 hover:border-border-strong transition-colors text-text-muted hover:text-text-secondary leading-snug"
+                className="w-full text-left text-[10px] px-2.5 py-1.5 rounded-lg bg-bg-card border border-border hover:bg-bg-hover hover:border-border-strong transition-colors text-text-muted hover:text-text-secondary leading-snug"
               >
                 → {example}
               </button>

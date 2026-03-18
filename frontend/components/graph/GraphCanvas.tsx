@@ -578,7 +578,7 @@ export const GraphCanvas = forwardRef<
             transform: "translate(-50%, -100%) translateY(-8px)",
           }}
         >
-          <div className="bg-[#1a1a2e] border border-white/12 rounded-lg px-2.5 py-1.5 shadow-xl shadow-black/50 whitespace-nowrap">
+          <div className="bg-bg-base border border-border rounded-lg px-2.5 py-1.5 shadow-xl shadow-black/50 whitespace-nowrap">
             <p className="text-[11px] font-mono text-accent font-semibold">
               {hoveredEdge.edge.relationship.replace(/_/g, " ").toLowerCase()}
             </p>

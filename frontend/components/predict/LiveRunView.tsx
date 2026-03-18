@@ -73,7 +73,7 @@ function CompactStepper({
                   "w-2 h-2 rounded-full flex-shrink-0 transition-all duration-300",
                   isDone && "bg-success",
                   isActive && "bg-accent animate-pulse",
-                  isPending && "bg-white/15"
+                  isPending && "bg-bg-hover"
                 )}
               />
               {/* label — only for done/active phases */}
@@ -94,7 +94,7 @@ function CompactStepper({
               <div
                 className={cn(
                   "w-3 h-px flex-shrink-0",
-                  i < currentIdx ? "bg-success/40" : "bg-white/10"
+                  i < currentIdx ? "bg-success/40" : "bg-border"
                 )}
               />
             )}
@@ -159,7 +159,7 @@ function EvidenceSection({ evidence }: { evidence: EvidenceItem[] }) {
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.04 }}
-              className="flex flex-col gap-1.5 p-2.5 rounded-lg bg-white/3 border border-border group"
+              className="flex flex-col gap-1.5 p-2.5 rounded-lg bg-bg-card border border-border group"
             >
               {/* Source + link row */}
               <div className="flex items-center justify-between gap-1">
@@ -192,13 +192,13 @@ function EvidenceSection({ evidence }: { evidence: EvidenceItem[] }) {
               <div className="flex items-center gap-2">
                 {/* Relevance + credibility bars side by side */}
                 <div className="flex flex-col gap-0.5 flex-shrink-0 w-14">
-                  <div className="h-0.5 w-full rounded-full bg-white/8 overflow-hidden">
+                  <div className="h-0.5 w-full rounded-full bg-bg-hover overflow-hidden">
                     <div
                       className="h-full rounded-full bg-accent"
                       style={{ width: `${Math.round(item.relevance_score * 100)}%` }}
                     />
                   </div>
-                  <div className="h-0.5 w-full rounded-full bg-white/8 overflow-hidden">
+                  <div className="h-0.5 w-full rounded-full bg-bg-hover overflow-hidden">
                     <div
                       className="h-full rounded-full bg-[#10B981]"
                       style={{ width: `${Math.round(item.credibility_score * 100)}%` }}
@@ -341,7 +341,7 @@ function LiveDebateSection({
         </div>
         {/* Mini round progress bar */}
         <div className="flex items-center gap-2 min-w-[80px]">
-          <div className="flex-1 h-1 rounded-full bg-white/8 overflow-hidden">
+          <div className="flex-1 h-1 rounded-full bg-bg-hover overflow-hidden">
             <div
               className="h-full rounded-full bg-accent transition-all duration-500"
               style={{ width: `${Math.round(roundProgress * 100)}%` }}
@@ -402,7 +402,7 @@ function LiveDebateSection({
                       <div className="flex-1 min-w-0">
                         <div className="text-[10px] text-text-muted mb-0.5">{ev.agent1_name}</div>
                         <div
-                          className="p-2 rounded-lg rounded-tl-none bg-white/4"
+                          className="p-2 rounded-lg rounded-tl-none bg-bg-hover"
                           style={{ borderLeft: `2px solid ${color1}50` }}
                         >
                           <p className="text-[11px] text-text-secondary leading-relaxed italic">
@@ -423,7 +423,7 @@ function LiveDebateSection({
                       <div className="flex-1 min-w-0">
                         <div className="text-[10px] text-text-muted mb-0.5 text-right">{ev.agent2_name}</div>
                         <div
-                          className="p-2 rounded-lg rounded-tr-none bg-white/3"
+                          className="p-2 rounded-lg rounded-tr-none bg-bg-card"
                           style={{ borderRight: `2px solid ${color2}50` }}
                         >
                           <p className="text-[11px] text-text-secondary leading-relaxed italic">
@@ -448,7 +448,7 @@ function LiveDebateSection({
                 )}
 
                 {/* Summary */}
-                <div className="ml-5 p-2 rounded-lg bg-white/3 border border-border">
+                <div className="ml-5 p-2 rounded-lg bg-bg-card border border-border">
                   <p className="text-[10px] text-text-muted leading-relaxed">
                     {ev.interaction_summary}
                   </p>

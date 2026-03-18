@@ -19,7 +19,7 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-1 bg-white/3 p-1 rounded-lg",
+        "flex items-center gap-1 bg-bg-card p-1 rounded-lg",
         className
       )}
     >
@@ -37,7 +37,7 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
           {activeTab === tab.id && (
             <motion.div
               layoutId="tab-bg"
-              className="absolute inset-0 bg-white/8 rounded-md"
+              className="absolute inset-0 bg-bg-hover rounded-md"
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
             />
           )}

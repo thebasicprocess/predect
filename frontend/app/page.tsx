@@ -135,7 +135,7 @@ function ConfidenceBar({ score }: { score: number }) {
     score >= 0.7 ? "#10B981" : score >= 0.5 ? "#F59E0B" : "#EF4444";
   return (
     <div className="flex items-center gap-3 flex-shrink-0">
-      <div className="w-20 h-1.5 rounded-full bg-white/10 overflow-hidden">
+      <div className="w-20 h-1.5 rounded-full bg-bg-hover overflow-hidden">
         <motion.div
           className="h-full rounded-full"
           style={{ background: color }}
@@ -270,7 +270,7 @@ export default function Home() {
       </section>
 
       {/* Stats bar */}
-      <section className="border-y border-border bg-white/[0.02]">
+      <section className="border-y border-border bg-bg-card">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {displayStats.map((stat, i) => (
@@ -357,7 +357,7 @@ export default function Home() {
       </section>
 
       {/* Steps — four-phase pipeline */}
-      <section className="px-4 sm:px-6 py-16 sm:py-20 border-y border-border bg-white/[0.015]">
+      <section className="px-4 sm:px-6 py-16 sm:py-20 border-y border-border bg-bg-card">
         <div className="max-w-4xl mx-auto">
           <motion.h2
             className="text-3xl font-bold text-center mb-16"
@@ -454,7 +454,7 @@ export default function Home() {
       </section>
 
       {/* Model orchestration */}
-      <section className="px-4 sm:px-6 py-16 sm:py-20 border-t border-border bg-white/[0.015]">
+      <section className="px-4 sm:px-6 py-16 sm:py-20 border-t border-border bg-bg-card">
         <div className="max-w-3xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0 }}

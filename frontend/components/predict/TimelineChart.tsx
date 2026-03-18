@@ -77,7 +77,7 @@ export function TimelineChart({ items }: TimelineChartProps) {
                     background:
                       i === 0
                         ? "transparent"
-                        : "rgba(255,255,255,0.1)",
+                        : "var(--border)",
                   }}
                 />
                 {/* Dot */}
@@ -85,7 +85,7 @@ export function TimelineChart({ items }: TimelineChartProps) {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.1 + i * 0.12, type: "spring", stiffness: 300, damping: 20 }}
-                  className="w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-[#0a0a0f]"
+                  className="w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-[var(--bg-base)]"
                   style={{ background: color }}
                 />
                 {/* Right line segment (hidden for last item) */}
@@ -100,7 +100,7 @@ export function TimelineChart({ items }: TimelineChartProps) {
               {/* Period label */}
               <span
                 className="mt-2 text-[10px] font-mono text-center leading-tight px-1"
-                style={{ color: "rgba(248,248,252,0.35)" }}
+                style={{ color: "var(--text-muted)" }}
               >
                 {item.period}
               </span>
@@ -118,7 +118,7 @@ export function TimelineChart({ items }: TimelineChartProps) {
               key={i}
               variants={itemVariants}
               className="flex items-start gap-3 py-2 px-3 rounded-lg"
-              style={{ background: "rgba(255,255,255,0.02)" }}
+              style={{ background: "var(--bg-card)" }}
             >
               <span
                 className="text-[10px] font-mono flex-shrink-0 mt-0.5 w-16 leading-tight"
@@ -128,7 +128,7 @@ export function TimelineChart({ items }: TimelineChartProps) {
               </span>
               <span
                 className="text-xs leading-snug"
-                style={{ color: "rgba(248,248,252,0.6)" }}
+                style={{ color: "var(--text-secondary)" }}
               >
                 {item.outlook}
               </span>

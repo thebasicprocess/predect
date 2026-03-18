@@ -6,6 +6,7 @@
 
 :root {
   --bg-base: #0a0a0f;
+  --bg-base-rgb: 10 10 15;
   --bg-card: rgba(255, 255, 255, 0.03);
   --bg-hover: rgba(255, 255, 255, 0.06);
   --accent: #635BFF;
@@ -24,6 +25,7 @@
 
 .light {
   --bg-base: #F4F4F8;
+  --bg-base-rgb: 244 244 248;
   --bg-card: rgba(0, 0, 0, 0.04);
   --bg-hover: rgba(0, 0, 0, 0.07);
   --border: rgba(0, 0, 0, 0.08);

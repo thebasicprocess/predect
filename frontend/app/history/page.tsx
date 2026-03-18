@@ -428,7 +428,7 @@ function PredictionHeatmap({ predictions }: { predictions: HistoryItem[] }) {
               exit={{ opacity: 0, y: 4 }}
               transition={{ duration: 0.12 }}
             >
-              <div className="bg-[#1a1a2e] border border-white/10 rounded-lg px-2.5 py-1.5 shadow-xl shadow-black/40 whitespace-nowrap">
+              <div className="bg-bg-base border border-border rounded-lg px-2.5 py-1.5 shadow-xl shadow-black/40 whitespace-nowrap">
                 <p className="text-[11px] font-mono text-text-secondary">
                   {fromDateKey(tooltip.date).toLocaleDateString("en-US", {
                     month: "short",
@@ -575,7 +575,7 @@ export default function HistoryPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search predictions…"
-              className="w-full pl-9 pr-8 py-2 rounded-lg border border-border bg-white/2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
+              className="w-full pl-9 pr-8 py-2 rounded-lg border border-border bg-bg-card text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
             />
             {searchQuery && (
               <button
@@ -723,7 +723,7 @@ export default function HistoryPage() {
                       whileHover={{ y: -2 }}
                     >
                       <Card
-                        className="hover:border-border-strong transition-all duration-200 cursor-pointer group hover:bg-white/[0.04] hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
+                        className="hover:border-border-strong transition-all duration-200 cursor-pointer group hover:bg-bg-hover hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
                         onClick={() => handleCardClick(p)}
                       >
                         <div className="flex items-start justify-between gap-4">
@@ -740,7 +740,7 @@ export default function HistoryPage() {
                             </div>
 
                             {/* Query */}
-                            <p className="text-sm font-medium text-text-primary line-clamp-2 group-hover:text-white transition-colors duration-200">
+                            <p className="text-sm font-medium text-text-primary line-clamp-2 group-hover:text-text-primary transition-colors duration-200">
                               {p.query}
                             </p>
 

@@ -236,7 +236,7 @@ export default function SettingsPage() {
             ].map((r) => (
               <div
                 key={r.tier}
-                className="flex items-center gap-3 p-2 rounded-lg bg-white/2"
+                className="flex items-center gap-3 p-2 rounded-lg bg-bg-card"
               >
                 <div
                   className="w-2 h-2 rounded-full flex-shrink-0"

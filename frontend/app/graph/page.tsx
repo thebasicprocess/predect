@@ -205,7 +205,7 @@ function GraphPageInner() {
   return (
     <div className="flex flex-col md:flex-row md:h-[calc(100vh-56px)] md:overflow-hidden">
       {/* Graph canvas */}
-      <div className="relative bg-[#0a0a0f] h-[50vh] md:h-auto md:flex-1">
+      <div className="relative bg-bg-base h-[50vh] md:h-auto md:flex-1">
         <GraphCanvas
           ref={graphRef}
           nodes={nodes}
@@ -290,7 +290,7 @@ function GraphPageInner() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search nodes..."
-            className="w-full bg-white/4 border border-border rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
+            className="w-full bg-bg-hover border border-border rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
           />
           {searchFilteredNodes.length > 0 && (
             <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
@@ -298,7 +298,7 @@ function GraphPageInner() {
                 <button
                   key={n.id}
                   onClick={() => handleNodeSelect(n)}
-                  className="w-full text-left text-xs px-2 py-1 rounded bg-white/4 hover:bg-white/8 transition-colors truncate text-text-secondary"
+                  className="w-full text-left text-xs px-2 py-1 rounded bg-bg-card hover:bg-bg-hover transition-colors truncate text-text-secondary"
                 >
                   <span
                     className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle flex-shrink-0"
@@ -338,7 +338,7 @@ function GraphPageInner() {
                     className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all ${
                       active
                         ? "border-current"
-                        : "border-transparent bg-white/5 text-text-muted hover:text-text-secondary"
+                        : "border-transparent bg-bg-card text-text-muted hover:text-text-secondary"
                     }`}
                     style={active ? { color, borderColor: `${color}60`, background: `${color}18` } : {}}
                   >
@@ -434,7 +434,7 @@ function GraphPageInner() {
                       return (
                         <div key={rel} className="flex items-center gap-2">
                           <span className="text-[9px] font-mono text-text-muted truncate w-28 flex-shrink-0">{rel.replace(/_/g, " ").toLowerCase()}</span>
-                          <div className="flex-1 h-1 bg-white/6 rounded-full overflow-hidden">
+                          <div className="flex-1 h-1 bg-bg-hover rounded-full overflow-hidden">
                             <div className="h-full bg-accent/60 rounded-full" style={{ width: `${(count / maxCount) * 100}%` }} />
                           </div>
                           <span className="text-[9px] font-mono text-text-muted w-5 text-right">{count}</span>
@@ -463,13 +463,13 @@ function GraphPageInner() {
                     <button
                       key={node.id}
                       onClick={() => handleNodeSelect(node)}
-                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/6 transition-colors group text-left"
+                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-bg-hover transition-colors group text-left"
                     >
                       <span className="text-[10px] font-mono text-text-muted w-4 flex-shrink-0">{i + 1}</span>
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
                       <span className="text-xs text-text-secondary group-hover:text-text-primary transition-colors truncate flex-1">{node.name}</span>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <div className="h-1 w-10 bg-white/6 rounded-full overflow-hidden">
+                        <div className="h-1 w-10 bg-bg-hover rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${(degree / (topNodes[0].degree || 1)) * 100}%`, background: color }} />
                         </div>
                         <span className="text-[10px] font-mono text-text-muted w-4 text-right">{degree}</span>
@@ -531,7 +531,7 @@ function GraphPageInner() {
                           return (
                             <div key={rel} className="flex items-center gap-2">
                               <span className="text-[9px] font-mono text-text-muted truncate flex-1">{rel.replace(/_/g, " ").toLowerCase()}</span>
-                              <div className="w-14 h-1 bg-white/6 rounded-full overflow-hidden">
+                              <div className="w-14 h-1 bg-bg-hover rounded-full overflow-hidden">
                                 <div className="h-full bg-accent/60 rounded-full" style={{ width: `${(count / maxCount) * 100}%` }} />
                               </div>
                               <span className="text-[9px] font-mono text-text-muted w-4 text-right">{count}</span>
@@ -560,7 +560,7 @@ function GraphPageInner() {
                             <button
                               key={pred.id}
                               onClick={() => router.push(`/predict?view=${pred.id}`)}
-                              className="w-full text-left bg-white/4 hover:bg-white/8 rounded-lg px-2.5 py-2 transition-colors group"
+                              className="w-full text-left bg-bg-card hover:bg-bg-hover rounded-lg px-2.5 py-2 transition-colors group"
                             >
                               <p className="text-[11px] text-text-secondary group-hover:text-text-primary transition-colors line-clamp-2 leading-snug">
                                 {pred.headline ?? pred.query}
@@ -609,7 +609,7 @@ function GraphPageInner() {
                             <button
                               key={edge.id}
                               onClick={() => handleNodeSelect(connectedNode)}
-                              className="w-full flex items-center gap-2 text-xs bg-white/4 hover:bg-white/8 rounded-lg px-2.5 py-1.5 transition-colors group text-left"
+                              className="w-full flex items-center gap-2 text-xs bg-bg-card hover:bg-bg-hover rounded-lg px-2.5 py-1.5 transition-colors group text-left"
                             >
                               <span
                                 className="w-2 h-2 rounded-full flex-shrink-0"

@@ -75,7 +75,7 @@ export function ConfidenceGauge({ score, color }: ConfidenceGaugeProps) {
         <path
           d={TRACK_PATH}
           fill="none"
-          stroke="rgba(255,255,255,0.08)"
+          stroke="var(--border)"
           strokeWidth={8}
           strokeLinecap="round"
         />
@@ -114,7 +114,7 @@ export function ConfidenceGauge({ score, color }: ConfidenceGaugeProps) {
           fontSize={7}
           fontWeight={500}
           fontFamily="Inter, system-ui, sans-serif"
-          fill="rgba(248,248,252,0.35)"
+          fill="var(--text-muted)"
           letterSpacing="0.12em"
         >
           CONFIDENCE

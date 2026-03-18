@@ -295,7 +295,7 @@ function PredictPageInner() {
             "flex items-center gap-2 px-3 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-all",
             session.sessionId === activeSessionId
               ? "bg-accent/15 text-accent border border-accent/30"
-              : "text-text-muted hover:text-text-secondary hover:bg-white/4 border border-transparent"
+              : "text-text-muted hover:text-text-secondary hover:bg-bg-hover border border-transparent"
           )}
         >
           <div
@@ -333,7 +333,7 @@ function PredictPageInner() {
       <button
         onClick={handleAddSession}
         title="New prediction"
-        className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-text-muted hover:text-text-primary hover:bg-white/4 transition-colors flex-shrink-0"
+        className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors flex-shrink-0"
       >
         <Plus className="w-3.5 h-3.5" />
       </button>
@@ -432,7 +432,7 @@ function PredictPageInner() {
                             initial={{ opacity: 0, y: 6 }}
                             animate={{ opacity: 1, y: 0 }}
                             onClick={() => router.push(`/predict?view=${p.id}`)}
-                            className="w-full text-left px-4 py-3 rounded-xl border border-border hover:border-border-strong hover:bg-white/4 transition-all group"
+                            className="w-full text-left px-4 py-3 rounded-xl border border-border hover:border-border-strong hover:bg-bg-hover transition-all group"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 min-w-0">
@@ -601,7 +601,7 @@ function PredictPageInner() {
                           <button
                             key={p.id}
                             onClick={() => router.push(`/predict?view=${p.id}`)}
-                            className="w-full text-left px-3 py-2.5 rounded-lg border border-border hover:border-border-strong hover:bg-white/4 transition-all group"
+                            className="w-full text-left px-3 py-2.5 rounded-lg border border-border hover:border-border-strong hover:bg-bg-hover transition-all group"
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">

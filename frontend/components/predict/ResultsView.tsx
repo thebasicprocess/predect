@@ -442,21 +442,21 @@ export function ResultsView() {
             <div className="flex items-center gap-1">
               <button
                 onClick={handleCopyLink}
-                className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+                className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
                 title="Copy link"
               >
                 {copiedLink ? <Check className="w-4 h-4 text-success" /> : <Link2 className="w-4 h-4" />}
               </button>
               <button
                 onClick={handleExportJson}
-                className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+                className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
                 title="Export JSON"
               >
                 <Download className="w-4 h-4" />
               </button>
               <button
                 onClick={handleExportMarkdown}
-                className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+                className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
                 title="Export as Markdown"
               >
                 <FileText className="w-4 h-4" />
@@ -481,11 +481,11 @@ export function ResultsView() {
 
       {(domain || timeHorizon || agents.length > 0) && (
         <div className="flex flex-wrap items-center gap-2">
-          {domain && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted capitalize">{domain}</span>}
-          {timeHorizon && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted">{timeHorizon}</span>}
-          {agents.length > 0 && <button onClick={() => setActiveTab("agents")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted hover:border-accent/40 hover:text-accent transition-colors">{agents.length} agents</button>}
-          {roundEvents.length > 0 && <button onClick={() => setActiveTab("debate")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted hover:border-accent/40 hover:text-accent transition-colors">{totalRounds} rounds</button>}
-          {evidence.length > 0 && <button onClick={() => setActiveTab("sources")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-border text-text-muted hover:border-success/40 hover:text-success transition-colors">{evidence.length} sources</button>}
+          {domain && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-bg-card border border-border text-text-muted capitalize">{domain}</span>}
+          {timeHorizon && <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-bg-card border border-border text-text-muted">{timeHorizon}</span>}
+          {agents.length > 0 && <button onClick={() => setActiveTab("agents")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-bg-card border border-border text-text-muted hover:border-accent/40 hover:text-accent transition-colors">{agents.length} agents</button>}
+          {roundEvents.length > 0 && <button onClick={() => setActiveTab("debate")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-bg-card border border-border text-text-muted hover:border-accent/40 hover:text-accent transition-colors">{totalRounds} rounds</button>}
+          {evidence.length > 0 && <button onClick={() => setActiveTab("sources")} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-bg-card border border-border text-text-muted hover:border-success/40 hover:text-success transition-colors">{evidence.length} sources</button>}
         </div>
       )}
 
@@ -511,7 +511,7 @@ export function ResultsView() {
                 </CardHeader>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-xs font-mono text-text-muted w-8">{Math.round(report.confidence.band[0] * 100)}%</span>
-                  <div className="flex-1 h-2 bg-white/8 rounded-full overflow-hidden relative">
+                  <div className="flex-1 h-2 bg-bg-hover rounded-full overflow-hidden relative">
                     <div
                       className="absolute top-0 h-full rounded-full opacity-30"
                       style={{
@@ -621,7 +621,7 @@ export function ResultsView() {
                         <Icon className="w-3 h-3 flex-shrink-0" style={{ color }} />
                         <span className="text-xs text-text-muted">{label}</span>
                       </div>
-                      <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
+                      <div className="flex-1 h-1.5 bg-bg-hover rounded-full overflow-hidden">
                         <motion.div
                           className="h-full rounded-full"
                           style={{ background: color }}
@@ -640,7 +640,7 @@ export function ResultsView() {
             {/* Key stats row */}
             <div className="grid grid-cols-2 gap-3">
               {report.agentConsensus !== undefined && (
-                <div className="p-3 rounded-xl bg-white/2 border border-border text-center">
+                <div className="p-3 rounded-xl bg-bg-card border border-border text-center">
                   <div className="text-xl font-bold font-mono" style={{ color: confidenceColor }}>
                     {Math.round(report.agentConsensus * 100)}%
                   </div>
@@ -648,31 +648,31 @@ export function ResultsView() {
                 </div>
               )}
               {report.keyDrivers?.length > 0 && (
-                <div className="p-3 rounded-xl bg-white/2 border border-border text-center">
+                <div className="p-3 rounded-xl bg-bg-card border border-border text-center">
                   <div className="text-xl font-bold font-mono text-accent">{report.keyDrivers.length}</div>
                   <div className="text-[10px] text-text-muted mt-0.5">Key Drivers</div>
                 </div>
               )}
               {report.riskFactors?.length > 0 && (
-                <div className="p-3 rounded-xl bg-white/2 border border-border text-center">
+                <div className="p-3 rounded-xl bg-bg-card border border-border text-center">
                   <div className="text-xl font-bold font-mono text-warning">{report.riskFactors.length}</div>
                   <div className="text-[10px] text-text-muted mt-0.5">Risk Factors</div>
                 </div>
               )}
               {evidence.length > 0 && (
-                <div className="p-3 rounded-xl bg-white/2 border border-border text-center">
+                <div className="p-3 rounded-xl bg-bg-card border border-border text-center">
                   <div className="text-xl font-bold font-mono text-success">{evidence.length}</div>
                   <div className="text-[10px] text-text-muted mt-0.5">Sources</div>
                 </div>
               )}
               {agents.length > 0 && (
-                <div className="p-3 rounded-xl bg-white/2 border border-border text-center">
+                <div className="p-3 rounded-xl bg-bg-card border border-border text-center">
                   <div className="text-xl font-bold font-mono" style={{ color: "#635BFF" }}>{agents.length}</div>
                   <div className="text-[10px] text-text-muted mt-0.5">Agents</div>
                 </div>
               )}
               {totalRounds > 0 && (
-                <div className="p-3 rounded-xl bg-white/2 border border-border text-center">
+                <div className="p-3 rounded-xl bg-bg-card border border-border text-center">
                   <div className="text-xl font-bold font-mono" style={{ color: "#F59E0B" }}>{totalRounds}</div>
                   <div className="text-[10px] text-text-muted mt-0.5">Rounds</div>
                 </div>
@@ -733,7 +733,7 @@ export function ResultsView() {
                 return (
                   <div
                     key={key}
-                    className="p-3 rounded-lg bg-white/2 border border-border"
+                    className="p-3 rounded-lg bg-bg-card border border-border"
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-1.5">
@@ -764,7 +764,7 @@ export function ResultsView() {
                       </div>
                     )}
                     <div className="mt-2">
-                      <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-bg-hover rounded-full overflow-hidden">
                         <motion.div
                           className="h-full rounded-full"
                           style={{ background: color }}
@@ -958,13 +958,13 @@ export function ResultsView() {
                       >
                         <div className="flex flex-col items-center flex-shrink-0">
                           <div
-                            className="w-2.5 h-2.5 rounded-full ring-2 ring-[#0a0a0f] mt-0.5"
+                            className="w-2.5 h-2.5 rounded-full ring-2 ring-[var(--bg-base)] mt-0.5"
                             style={{ background: color }}
                           />
                           {i < report.predictedEvents!.length - 1 && (
                             <div
                               className="w-px flex-1 mt-1 min-h-[20px]"
-                              style={{ background: "rgba(255,255,255,0.08)" }}
+                              style={{ background: "var(--bg-hover)" }}
                             />
                           )}
                         </div>
@@ -992,7 +992,7 @@ export function ResultsView() {
                           <p className="text-xs text-text-secondary leading-snug">
                             {ev.event}
                           </p>
-                          <div className="mt-1.5 h-1 bg-white/8 rounded-full overflow-hidden">
+                          <div className="mt-1.5 h-1 bg-bg-hover rounded-full overflow-hidden">
                             <motion.div
                               className="h-full rounded-full"
                               style={{ background: color }}
@@ -1048,7 +1048,7 @@ export function ResultsView() {
                 )}
 
                 {/* View toggle */}
-                <div className="flex items-center gap-1.5 p-1 bg-white/4 rounded-lg w-fit">
+                <div className="flex items-center gap-1.5 p-1 bg-bg-hover rounded-lg w-fit">
                   <button
                     onClick={() => setSimViewMode("rounds")}
                     className={`text-[11px] px-3 py-1.5 rounded-md transition-all ${simViewMode === "rounds" ? "bg-accent/20 text-accent" : "text-text-muted hover:text-text-secondary"}`}
@@ -1078,7 +1078,7 @@ export function ResultsView() {
                       >
                         <Card>
                           <div className="flex items-center gap-2 mb-3 flex-wrap">
-                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/6 text-text-muted">
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-bg-hover text-text-muted">
                               Round {round.round}
                             </span>
                             <span className="text-[11px] font-semibold" style={{ color: color1 }}>{round.agent1_name}</span>
@@ -1144,7 +1144,7 @@ export function ResultsView() {
                                       className="text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1"
                                       style={freq > 1
                                         ? { background: "rgba(99,91,255,0.12)", borderColor: "rgba(99,91,255,0.3)", color: "#635BFF" }
-                                        : { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)", color: "rgba(248,248,252,0.5)" }
+                                        : { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-secondary)" }
                                       }
                                     >
                                       {freq > 1 && <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" title="Recurring claim" />}
@@ -1216,7 +1216,7 @@ export function ResultsView() {
                               return (
                                 <div key={ri} className="pl-2 border-l-2" style={{ borderColor: `${color}30` }}>
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-white/6 text-text-muted">R{ev.round}</span>
+                                    <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-bg-hover text-text-muted">R{ev.round}</span>
                                     <span className="text-[10px] text-text-muted">vs {opponent}</span>
                                   </div>
                                   <p className="text-[11px] text-text-secondary italic leading-relaxed">&ldquo;{statement}&rdquo;</p>
@@ -1301,7 +1301,7 @@ export function ResultsView() {
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.08 }}
-                        className="p-3 rounded-xl border border-border bg-white/2"
+                        className="p-3 rounded-xl border border-border bg-bg-card"
                       >
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -1319,7 +1319,7 @@ export function ResultsView() {
                         {/* Sentiment bar */}
                         <div className="flex items-center gap-2 mb-2.5">
                           <span className="text-[9px] text-text-muted w-12 flex-shrink-0">Sentiment</span>
-                          <div className="flex-1 h-1 bg-white/8 rounded-full relative overflow-hidden">
+                          <div className="flex-1 h-1 bg-bg-hover rounded-full relative overflow-hidden">
                             <div className="absolute left-1/2 top-0 w-px h-full bg-white/20" />
                             <motion.div
                               className="absolute top-0 h-full rounded-full"
@@ -1382,7 +1382,7 @@ export function ResultsView() {
                   {report.dominantNarratives.map((n, i) => (
                     <div
                       key={i}
-                      className="flex items-start gap-2 p-2 rounded-lg bg-white/2"
+                      className="flex items-start gap-2 p-2 rounded-lg bg-bg-card"
                     >
                       <span className="text-xs font-mono text-accent flex-shrink-0">
                         #{i + 1}
@@ -1419,7 +1419,7 @@ export function ResultsView() {
                         <div className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 w-24" style={{ background: `${color}18`, color }}>
                           {source.replace(/_/g, " ").toUpperCase()}
                         </div>
-                        <div className="flex-1 h-1.5 bg-white/6 rounded-full overflow-hidden">
+                        <div className="flex-1 h-1.5 bg-bg-hover rounded-full overflow-hidden">
                           <motion.div
                             className="h-full rounded-full"
                             style={{ background: color }}
@@ -1454,7 +1454,7 @@ export function ResultsView() {
                       value={evidenceFilter}
                       onChange={(e) => setEvidenceFilter(e.target.value)}
                       placeholder="Filter sources..."
-                      className="w-full pl-7 pr-7 py-1 text-[11px] bg-white/4 border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
+                      className="w-full pl-7 pr-7 py-1 text-[11px] bg-bg-hover border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
                     />
                     {evidenceFilter && (
                       <button
@@ -1466,7 +1466,7 @@ export function ResultsView() {
                     )}
                   </div>
                   {/* Sort buttons */}
-                  <div className="flex items-center gap-1 p-1 bg-white/4 rounded-lg flex-shrink-0">
+                  <div className="flex items-center gap-1 p-1 bg-bg-hover rounded-lg flex-shrink-0">
                     {(["relevance", "credibility", "date"] as const).map((s) => (
                       <button
                         key={s}
@@ -1497,7 +1497,7 @@ export function ResultsView() {
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.03 }}
-                        className="p-3 rounded-lg bg-white/2 border border-border group hover:border-border-strong transition-colors"
+                        className="p-3 rounded-lg bg-bg-card border border-border group hover:border-border-strong transition-colors"
                       >
                         <div className="flex items-start gap-3">
                           <div
@@ -1533,7 +1533,7 @@ export function ResultsView() {
                                   <span className="text-[9px] text-text-muted w-12 flex-shrink-0">
                                     {sentimentVal > 0.2 ? "Bullish" : sentimentVal < -0.2 ? "Bearish" : "Neutral"}
                                   </span>
-                                  <div className="flex-1 h-1 bg-white/8 rounded-full relative overflow-hidden">
+                                  <div className="flex-1 h-1 bg-bg-hover rounded-full relative overflow-hidden">
                                     {/* Center marker */}
                                     <div className="absolute left-1/2 top-0 w-px h-full bg-white/20" />
                                     {/* Fill from center */}
@@ -1560,12 +1560,12 @@ export function ResultsView() {
                             {entities && entities.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1.5">
                                 {entities.slice(0, 5).map((entity, ei) => (
-                                  <span key={ei} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/6 text-text-muted border border-white/8">
+                                  <span key={ei} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-bg-hover text-text-muted border border-border">
                                     {entity}
                                   </span>
                                 ))}
                                 {entities.length > 5 && (
-                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/4 text-text-muted">
+                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-bg-card text-text-muted">
                                     +{entities.length - 5} more
                                   </span>
                                 )}
@@ -1574,14 +1574,14 @@ export function ResultsView() {
 
                             <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                               <div className="flex items-center gap-1" title="Relevance score">
-                                <div className="h-1 w-12 bg-white/8 rounded-full overflow-hidden">
+                                <div className="h-1 w-12 bg-bg-hover rounded-full overflow-hidden">
                                   <div className="h-full rounded-full" style={{ width: `${Math.round(item.relevance_score * 100)}%`, background: color }} />
                                 </div>
                                 <span className="text-[10px] font-mono text-text-muted">{Math.round(item.relevance_score * 100)}% rel</span>
                               </div>
                               {item.credibility_score != null && (
                                 <div className="flex items-center gap-1" title="Credibility score">
-                                  <div className="h-1 w-12 bg-white/8 rounded-full overflow-hidden">
+                                  <div className="h-1 w-12 bg-bg-hover rounded-full overflow-hidden">
                                     <div className="h-full rounded-full" style={{ width: `${Math.round(item.credibility_score * 100)}%`, background: "#10B981" }} />
                                   </div>
                                   <span className="text-[10px] font-mono text-text-muted">{Math.round(item.credibility_score * 100)}% cred</span>
@@ -1756,7 +1756,7 @@ export function ResultsView() {
                     </CardHeader>
                     <div className="flex items-center gap-4">
                       <div className="flex-1">
-                        <div className="h-2 bg-white/8 rounded-full overflow-hidden">
+                        <div className="h-2 bg-bg-hover rounded-full overflow-hidden">
                           <motion.div
                             className="h-full rounded-full"
                             style={{ background: `linear-gradient(90deg, #635BFF, #10B981)` }}

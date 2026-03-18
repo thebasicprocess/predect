@@ -10,14 +10,14 @@ const config: Config = {
     extend: {
       colors: {
         bg: {
-          base: "var(--bg-base)",
+          base: "rgb(var(--bg-base-rgb) / <alpha-value>)",
           card: "var(--bg-card)",
           hover: "var(--bg-hover)",
         },
         accent: {
-          DEFAULT: "var(--accent)",
-          hover: "var(--accent-hover)",
-          muted: "var(--accent-muted)",
+          DEFAULT: "#635BFF",
+          hover: "#7C75FF",
+          muted: "rgba(99,91,255,0.15)",
         },
         border: {
           DEFAULT: "var(--border)",

@@ -95,7 +95,7 @@ export function ActivityPanel() {
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.04 }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${isActive ? "bg-accent/8 border border-accent/20" : "bg-white/2"}`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${isActive ? "bg-accent/8 border border-accent/20" : "bg-bg-card"}`}
                 >
                   {/* Cost tier dot */}
                   <div
@@ -149,7 +149,7 @@ export function ActivityPanel() {
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04 }}
-                  className="flex items-start gap-2 p-2 rounded-lg bg-white/2 group"
+                  className="flex items-start gap-2 p-2 rounded-lg bg-bg-card group"
                 >
                   <div
                     className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5"
@@ -165,13 +165,13 @@ export function ActivityPanel() {
                     <div className="flex items-center gap-2 mt-1">
                       {/* Dual relevance + credibility bars */}
                       <div className="w-16 flex flex-col gap-0.5 flex-shrink-0">
-                        <div className="h-0.5 w-full rounded-full bg-white/8 overflow-hidden">
+                        <div className="h-0.5 w-full rounded-full bg-bg-hover overflow-hidden">
                           <div
                             className="h-full rounded-full bg-accent"
                             style={{ width: `${Math.round(item.relevance_score * 100)}%` }}
                           />
                         </div>
-                        <div className="h-0.5 w-full rounded-full bg-white/8 overflow-hidden">
+                        <div className="h-0.5 w-full rounded-full bg-bg-hover overflow-hidden">
                           <div
                             className="h-full rounded-full bg-[#10B981]"
                             style={{ width: `${Math.round(item.credibility_score * 100)}%` }}
@@ -193,7 +193,7 @@ export function ActivityPanel() {
                       />
                       {/* First entity pill */}
                       {item.entities && item.entities.length > 0 && (
-                        <span className="text-[9px] px-1 py-0.5 rounded bg-white/5 text-text-muted truncate max-w-[56px]">
+                        <span className="text-[9px] px-1 py-0.5 rounded bg-bg-card text-text-muted truncate max-w-[56px]">
                           {item.entities[0]}
                         </span>
                       )}
@@ -235,7 +235,7 @@ export function ActivityPanel() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06, type: "spring", stiffness: 300, damping: 30 }}
-                  className="flex items-start gap-2 p-2.5 rounded-lg bg-white/2"
+                  className="flex items-start gap-2 p-2.5 rounded-lg bg-bg-card"
                 >
                   <div
                     className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5"
@@ -246,7 +246,7 @@ export function ActivityPanel() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-medium text-text-primary truncate">{agent.name}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-text-muted font-mono flex-shrink-0">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-bg-card text-text-muted font-mono flex-shrink-0">
                         {agent.beliefs?.length ?? 0}
                       </span>
                     </div>
@@ -296,7 +296,7 @@ export function ActivityPanel() {
                     {Math.round(progress * 100)}%
                   </span>
                 </div>
-                <div className="h-0.5 w-full rounded-full bg-white/8 overflow-hidden">
+                <div className="h-0.5 w-full rounded-full bg-bg-hover overflow-hidden">
                   <div
                     className="h-full rounded-full bg-accent transition-all duration-500"
                     style={{ width: `${Math.round(progress * 100)}%` }}
@@ -346,7 +346,7 @@ export function ActivityPanel() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-[10px] text-text-muted mb-0.5">{ev.agent1_name}</div>
-                            <div className="p-2 rounded-lg rounded-tl-none bg-white/4 border border-white/8">
+                            <div className="p-2 rounded-lg rounded-tl-none bg-bg-hover border border-border">
                               <p className="text-[11px] text-text-secondary leading-relaxed italic">
                                 &ldquo;{ev.agent1_statement}&rdquo;
                               </p>
@@ -383,7 +383,7 @@ export function ActivityPanel() {
                     )}
 
                     {/* Summary */}
-                    <div className="ml-5 p-2 rounded-lg bg-white/3 border border-border">
+                    <div className="ml-5 p-2 rounded-lg bg-bg-card border border-border">
                       <p className="text-[10px] text-text-muted leading-relaxed">{ev.interaction_summary}</p>
                     </div>
 
